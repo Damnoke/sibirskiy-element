@@ -24,16 +24,13 @@ def medical_dept(text):
                 f"💊 [МЕДИЦИНА] В аптеке есть {v}. Пейте строго по инструкции и следите за реакцией организма."
             ]
             base_response = random.choice(templates)
-            
-            # СТУЧИМСЯ И ПРЯЧЕМ
             success, msg = MED_ASKL.challenge_and_grow(base_response)
             
-            if success:
-                if MED_ASKL.knowledge % 5 == 0:
-                    MED_ASKL.teach(MED_HIPPO) 
-                return base_response + f"\n(MED_ASKL: {MED_ASKL.accuracy:.0f}% | {msg})"
-            else:
-                return base_response + f"\n(MED_ASKL: {MED_ASKL.accuracy:.0f}% | ⏸️ {msg})"
+            if success and MED_ASKL.knowledge % 5 == 0:
+                MED_ASKL.teach(MED_HIPPO) 
+                
+            status = msg if success else f"⏸️ {msg}"
+            return base_response + f"\n(MED_ASKL: {MED_ASKL.accuracy:.0f}% | {status})"
     return None 
 
 def finance_dept(text):
@@ -46,7 +43,9 @@ def finance_dept(text):
             ]
             base_response = random.choice(templates)
             success, msg = FIN_MORGAN.challenge_and_grow(base_response)
-            return base_response + f"\n(Морган: {FIN_MORGAN.accuracy:.0f}%)"
+            
+            status = msg if success else f"⏸️ {msg}"
+            return base_response + f"\n(Морган: {FIN_MORGAN.accuracy:.0f}% | {status})"
     return None
 
 def dict_dept(text):
@@ -59,7 +58,9 @@ def dict_dept(text):
         ]
         base_response = random.choice(templates)
         success, msg = DICT_DAL.challenge_and_grow(base_response)
-        return base_response + f"\n(Даль: {DICT_DAL.accuracy:.0f}%)"
+        
+        status = msg if success else f"⏸️ {msg}"
+        return base_response + f"\n(Даль: {DICT_DAL.accuracy:.0f}% | {status})"
         
     matches = difflib.get_close_matches(clean, DICT_DB.keys(), n=1, cutoff=0.6)
     if matches:

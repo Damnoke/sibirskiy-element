@@ -56,13 +56,15 @@ if prompt := st.chat_input("Напишите ваш вопрос..."):
         st.markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # 2. Получаем ответ от ИИ
+        # 2. Получаем ответ от ИИ
     with st.chat_message("assistant", avatar="🤖"):
         with st.spinner("Анализирую..."):
             response = st.session_state.ai_brain.ask(prompt)
             st.markdown(response)
     st.session_state.messages.append({"role": "assistant", "content": response, "avatar": "🤖"})
-
+    
+    # МАГИЯ: Перезапускаем страницу, чтобы боковая панель подтянула новые проценты
+    st.rerun()
 # Подвал
 st.divider()
 st.caption("Текущая сборка: v3.1 (MasterAI + Умный Fallback) | Автор: Сибирский Элемент")

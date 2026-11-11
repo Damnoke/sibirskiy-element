@@ -3,7 +3,7 @@ from brain_core import MasterAI
 from brain_models import MED_ASKL, MED_HIPPO, FIN_MORGAN, DICT_DAL, SEC_CERBER
 
 # Настройка страницы
-st.set_page_config(page_title="Сибирский Элемент v3.1", page_icon="🏢", layout="wide")
+st.set_page_config(page_title="Сибирский Элемент v3.3", page_icon="🏢", layout="wide")
 
 # Инициализация ИИ в сессии (чтобы память не сбрасывалась)
 if "ai_brain" not in st.session_state:
@@ -39,7 +39,12 @@ with st.sidebar:
     st.write("**Цербер (Безопасность)**")
     st.progress(SEC_CERBER.accuracy / 100.0)
     st.caption(f"Точность: {SEC_CERBER.accuracy:.0f}% | Знаний: {SEC_CERBER.knowledge}")
-
+    st.divider()
+    st.subheader("🗣️ Голос Агентов")
+    if st.button("Созвать Совет"):
+        from brain_models import hold_desire_council
+        council_decision = hold_desire_council()
+        st.info(council_decision)
 # --- ОСНОВНОЙ ИНТЕРФЕЙС ---
 st.title("🏢 Сибирский Элемент v3.1")
 st.markdown("Умный Fallback: Сначала База, если не поняла — подключается PRO.")

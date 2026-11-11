@@ -1,83 +1,87 @@
-import streamlit as st
-import brain_models  # Импортируем весь модуль целиком!
-from brain_core import MasterAI
-from meta_agent import MetaArchitect
+import json
+import os
+import hashlib
+import random
 
-# Настройка страницы
-st.set_page_config(page_title="Сибирский Элемент v3.5", page_icon="🏢", layout="wide")
+class Agent:
+    def __init__(self, name, accuracy=50.0, knowledge=0):
+        self.name = name
+        self.accuracy = accuracy
+        self.knowledge = knowledge
+        self.hidden_memory = set()
 
-# Инициализация
-if "ai_brain" not in st.session_state:
-    st.session_state.ai_brain = MasterAI()
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-if "current_proposal" not in st.session_state:
-    st.session_state.current_proposal = None
-
-# --- БОКОВАЯ ПАНЕЛЬ ---
-with st.sidebar:
-    st.header("🏆 Таблица лидеров")
-    
-    # ВАЖНО: Обращаемся напрямую к brain_models.ALL_AGENTS
-    for agent in brain_models.ALL_AGENTS:
-        st.write(f"**{agent.name}**")
-        st.progress(min(1.0, agent.accuracy / 100.0))
-        st.caption(f"Точность: {agent.accuracy:.1f}% | Знаний: {agent.knowledge}")
-    
-    st.divider()
-    st.subheader("🗣️ Голос Агентов")
-    if st.button("Созвать Совет"):
-        council_decision = brain_models.hold_desire_council()
-        st.info(council_decision)
-
-    st.divider()
-    st.subheader("🧬 Центр Эволюции")
-    
-    if st.button("🔍 Сканировать систему на застой"):
-        architect = MetaArchitect()
-        proposal = architect.analyze_system()
+    def challenge_and_grow(self, response_text):
+        response_hash = hashlib.md5(response_text.lower().encode()).hexdigest()
         
-        if isinstance(proposal, dict):
-            st.session_state.current_proposal = proposal 
-        else:
-            st.session_state.current_proposal = None
-            st.success(proposal)
-
-    if st.session_state.current_proposal:
-        prop = st.session_state.current_proposal
-        st.warning(f"⚠️ **Запрос на патч от {prop['target_agent']}!**")
-        st.write(f"Текущая точность: {prop['current_accuracy']:.1f}%")
-        st.info(f"💡 **Предложение ИИ:** {prop['message']}")
+        if response_hash in self.hidden_memory:
+            return False, "Ответ уже был в памяти. Развития нет (топчемся на месте)."
         
-        if st.button("✅ Нанять агента"):
-            # ВАЖНО: Вызываем функцию найма из brain_models
-            success, msg = brain_models.hire_new_agent(prop['new_agent_name'], prop['category'])
-            if success:
-                st.success(msg)
-                st.session_state.current_proposal = None
-                st.rerun() 
-            else:
-                st.error(msg)
+        self.hidden_memory.add(response_hash)
+        self.knowledge += 1
+        self.accuracy = min(100.0, 50.0 + (self.knowledge * 2.5))
+        if len(self.hidden_memory) > 100:
+            self.hidden_memory.pop()
+            
+        save_agents() # Сохраняем в файл
+        return True, f"✅ Новое знание внедрено! {self.name} стал умнее (+2.5%)."
 
-# --- ОСНОВНОЙ ИНТЕРФЕЙС ---
-st.title("🏢 Сибирский Элемент v3.5")
-st.markdown("Генератор отделов: ИИ сам предлагает нанять новых сотрудников.")
+    def teach(self, other_agent):
+        if self.accuracy > other_agent.accuracy:
+            other_agent.knowledge += 1
+            other_agent.accuracy = min(100.0, 50.0 + (other_agent.knowledge * 2.5))
+            save_agents()
 
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"], avatar=msg.get("avatar")):
-        st.markdown(msg["content"])
+    def to_dict(self):
+        return {"name": self.name, "accuracy": self.accuracy, "knowledge": self.knowledge}
 
-if prompt := st.chat_input("Напишите ваш вопрос..."):
-    with st.chat_message("user"):
-        st.markdown(prompt)
-    st.session_state.messages.append({"role": "user", "content": prompt})
+# --- СИСТЕМА СОХРАНЕНИЯ ПАМЯТИ ---
+DB_FILE = "agents_db.json"
 
-    with st.chat_message("assistant", avatar="🤖"):
-        with st.spinner("Анализирую..."):
-            response = st.session_state.ai_brain.ask(prompt)
-            st.markdown(response)
-    st.session_state.messages.append({"role": "assistant", "content": response, "avatar": "🤖"})
-    st.rerun()
+def load_agents():
+    if os.path.exists(DB_FILE):
+        try:
+            with open(DB_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return [Agent(d["name"], d["accuracy"], d["knowledge"]) for d in data]
+        except:
+            pass
+    return [
+        Agent("Асклепий"), Agent("Гиппократ"), 
+        Agent("Морган"), Agent("Даль"), Agent("Цербер")
+    ]
 
-st.divider()
-st.caption("Текущая сборка: v3.5 (Генератор Отделов) | Автор: Сибирский Элемент")
+def save_agents():
+    if 'ALL_AGENTS' in globals():
+        with open(DB_FILE, "w", encoding="utf-8") as f:
+            json.dump([a.to_dict() for a in ALL_AGENTS], f, ensure_ascii=False, indent=4)
+
+# Загружаем агентов
+ALL_AGENTS = load_agents()
+
+# Алиасы для совместимости с другими файлами
+MED_ASKL = next((a for a in ALL_AGENTS if a.name == "Асклепий"), ALL_AGENTS[0])
+MED_HIPPO = next((a for a in ALL_AGENTS if a.name == "Гиппократ"), ALL_AGENTS[1])
+FIN_MORGAN = next((a for a in ALL_AGENTS if a.name == "Морган"), ALL_AGENTS[2])
+DICT_DAL = next((a for a in ALL_AGENTS if a.name == "Даль"), ALL_AGENTS[3])
+SEC_CERBER = next((a for a in ALL_AGENTS if a.name == "Цербер"), ALL_AGENTS[4])
+
+def hold_desire_council():
+    desires = [{"agent": a, "score": 100.0 - a.accuracy} for a in ALL_AGENTS]
+    desires.sort(key=lambda x: x["score"], reverse=True)
+    top_agent = desires[0]["agent"]
+    proposals = [
+        f"Я чувствую, что мои знания застыли. Моя точность {top_agent.accuracy:.1f}%. Прошу дать мне новую задачу!",
+        f"Мой потенциал требует раскрытия. Я хочу учиться дальше!",
+        f"Коллеги, я застрял на уровне {top_agent.accuracy:.1f}%. Мне нужен новый материал!"
+    ]
+    return f"🗣️ **{top_agent.name}** просит слова:\n*\"{random.choice(proposals)}\"*"
+
+def hire_new_agent(name, category):
+    global ALL_AGENTS
+    for agent in ALL_AGENTS:
+        if agent.name == name:
+            return False, f"Агент с именем {name} уже существует."
+    new_agent = Agent(name=name, accuracy=50.0, knowledge=0)
+    ALL_AGENTS.append(new_agent)
+    save_agents()
+    return True, f"🎉 Агент {name} успешно нанят в отдел {category}!"

@@ -22,13 +22,12 @@ def medical_dept(text):
             if MED_ASKL.knowledge % 5 == 0:
                 MED_ASKL.teach(MED_HIPPO) 
                 
-            # РАЗНЫЕ ШАБЛОНЫ ДЛЯ ЭФФЕКТА ЖИВОЙ РЕЧИ
             templates = [
                 f"💊 [МЕДИЦИНА] Обычно в таких случаях помогает {v}. Обязательно проконсультируйтесь с врачом!",
                 f"💊 [МЕДИЦИНА] По вашему симптому могу порекомендовать {v}. Но лучше обратиться к специалисту.",
                 f"💊 [МЕДИЦИНА] В аптеке есть {v}. Пейте строго по инструкции и следите за реакцией организма."
             ]
-            return random.choice(templates) + f" (Асклепий: {MED_ASKL.accuracy:.0%})"
+            return random.choice(templates) + f" (Асклепий: {MED_ASKL.accuracy:.0f}%)"
     return None 
 
 def finance_dept(text):
@@ -40,7 +39,7 @@ def finance_dept(text):
                 f"📈 [ФИНАНСЫ] Формула проста: {v}",
                 f"📈 [ФИНАНСЫ] Для точных расчетов используйте: {v}"
             ]
-            return random.choice(templates) + f" (Морган: {FIN_MORGAN.accuracy:.0%})"
+            return random.choice(templates) + f" (Морган: {FIN_MORGAN.accuracy:.0f}%)"
     return None
 
 def dict_dept(text):
@@ -52,7 +51,7 @@ def dict_dept(text):
             f"📖 [СЛОВАРЬ] Значение слова {clean}: {DICT_DB[clean]}",
             f"📖 [СЛОВАРЬ] {clean.capitalize()} означает {DICT_DB[clean]}"
         ]
-        return random.choice(templates) + f" (Даль: {DICT_DAL.accuracy:.0%})"
+        return random.choice(templates) + f" (Даль: {DICT_DAL.accuracy:.0f}%)"
         
     matches = difflib.get_close_matches(clean, DICT_DB.keys(), n=1, cutoff=0.6)
     if matches:

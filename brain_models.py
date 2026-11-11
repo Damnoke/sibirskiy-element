@@ -1,22 +1,23 @@
-class MLModel:
-    def __init__(self, model_id, name, specialty):
-        self.id = model_id          
-        self.name = name            
-        self.specialty = specialty  
-        self.accuracy = 0.5         
-        self.knowledge = 0          
+class Agent:
+    def __init__(self, name):
+        self.name = name
+        self.accuracy = 50.0  # Начинаем с 50%
+        self.knowledge = 0
 
-    def train(self, new_facts):
-        self.knowledge += new_facts
-        self.accuracy = min(0.99, self.accuracy + (new_facts * 0.01))
-        
-    def teach(self, other_model):
-        if self.accuracy > other_model.accuracy:
-            other_model.accuracy = round((self.accuracy + other_model.accuracy) / 2, 2)
-            other_model.knowledge += 10
+    def train(self, amount):
+        self.knowledge += amount
+        # Формула роста: чем больше знаний, тем выше точность (но не больше 100)
+        self.accuracy = min(100.0, 50.0 + (self.knowledge * 2.5))
 
-MED_ASKL = MLModel("Med-001", "Асклепий", "Медицина")
-MED_HIPPO = MLModel("Med-002", "Гиппократ", "Медицина")
-FIN_MORGAN = MLModel("Fin-001", "Морган", "Финансы")
-DICT_DAL = MLModel("Dict-001", "Даль", "Словарь")
-SEC_CERBER = MLModel("Sec-001", "Цербер", "Безопасность")
+    def teach(self, other_agent):
+        # Сильный учит слабого
+        if self.accuracy > other_agent.accuracy:
+            other_agent.knowledge += 1
+            other_agent.accuracy = min(100.0, 50.0 + (other_agent.knowledge * 2.5))
+
+# Создаем наших агентов
+MED_ASKL = Agent("Асклепий")
+MED_HIPPO = Agent("Гиппократ")
+FIN_MORGAN = Agent("Морган")
+DICT_DAL = Agent("Даль")
+SEC_CERBER = Agent("Цербер")

@@ -46,7 +46,7 @@ with st.sidebar:
         council_decision = hold_desire_council()
         st.info(council_decision)
 # --- ОСНОВНОЙ ИНТЕРФЕЙС ---
-st.title("🏢 Сибирский Элемент v3.1")
+st.title("🏢 Сибирский Элемент v3.3")
 st.markdown("Умный Fallback: Сначала База, если не поняла — подключается PRO.")
 
 # Отображение истории сообщений

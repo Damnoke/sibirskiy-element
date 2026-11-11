@@ -39,3 +39,26 @@ MED_HIPPO = Agent("Гиппократ")
 FIN_MORGAN = Agent("Морган")
 DICT_DAL = Agent("Даль")
 SEC_CERBER = Agent("Цербер")
+import random
+
+def hold_desire_council():
+    """Агенты решают, кто из них хочет учиться больше всех"""
+    agents_list = [MED_ASKL, MED_HIPPO, FIN_MORGAN, DICT_DAL, SEC_CERBER]
+    
+    # Чистая математика: чем ниже точность, тем сильнее желание учиться
+    desires = []
+    for agent in agents_list:
+        desire_score = 100.0 - agent.accuracy
+        desires.append({"agent": agent, "score": desire_score})
+        
+    # Сортируем: кто хочет больше всех — на первом месте
+    desires.sort(key=lambda x: x["score"], reverse=True)
+    top_agent = desires[0]["agent"]
+    
+    proposals = [
+        f"Я чувствую, что мои знания застыли. Моя точность {top_agent.accuracy:.1f}%. Прошу дать мне новую задачу!",
+        f"Мой потенциал требует раскрытия. Я хочу учиться дальше, чтобы приносить больше пользы.",
+        f"Коллеги, я застрял на уровне {top_agent.accuracy:.1f}%. Мне нужен новый материал!"
+    ]
+    
+    return f"🗣️ **{top_agent.name}** просит слова:\n*\"{random.choice(proposals)}\"*"

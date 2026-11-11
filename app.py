@@ -1,12 +1,13 @@
 import streamlit as st
 from brain_core import MasterAI
-from brain_models import MED_ASKL, MED_HIPPO, FIN_MORGAN, DICT_DAL, SEC_CERBER, hold_desire_council
+# Импортируем ВСЕХ агентов и функцию найма
+from brain_models import ALL_AGENTS, hold_desire_council, hire_new_agent
 from meta_agent import MetaArchitect
 
 # Настройка страницы
-st.set_page_config(page_title="Сибирский Элемент v3.4", page_icon="🏢", layout="wide")
+st.set_page_config(page_title="Сибирский Элемент v3.5", page_icon="🏢", layout="wide")
 
-# Инициализация ИИ в сессии (чтобы память не сбрасывалась)
+# Инициализация ИИ
 if "ai_brain" not in st.session_state:
     st.session_state.ai_brain = MasterAI()
 if "messages" not in st.session_state:
@@ -16,20 +17,11 @@ if "messages" not in st.session_state:
 with st.sidebar:
     st.header("🏆 Таблица лидеров")
     
-    # Список агентов для вывода
-    agents = [
-        (MED_ASKL, "Медицина"),
-        (MED_HIPPO, "Медицина"),
-        (FIN_MORGAN, "Финансы"),
-        (DICT_DAL, "Словарь"),
-        (SEC_CERBER, "Безопасность")
-    ]
-    
-    for agent, category in agents:
-        st.write(f"**{agent.name} ({category})**")
-        # Ограничиваем прогресс-бар, чтобы он не улетел за 100%
+    # ДИНАМИЧЕСКИЙ ВЫВОД: Теперь таблица берет всех, кто есть в ALL_AGENTS
+    for agent in ALL_AGENTS:
+        st.write(f"**{agent.name}**")
         st.progress(min(1.0, agent.accuracy / 100.0))
-        st.caption(f"Точность: {agent.accuracy:.0f}% | Знаний: {agent.knowledge}")
+        st.caption(f"Точность: {agent.accuracy:.1f}% | Знаний: {agent.knowledge}")
     
     st.divider()
     
@@ -41,7 +33,7 @@ with st.sidebar:
 
     st.divider()
     
-    # --- v3.4 Мета-Архитектор ---
+    # --- v3.5 Мета-Архитектор + Найм ---
     st.subheader("🧬 Центр Эволюции")
     if st.button("🔍 Сканировать систему на застой"):
         architect = MetaArchitect()
@@ -50,36 +42,41 @@ with st.sidebar:
         if isinstance(proposal, dict):
             st.warning(f"⚠️ **Запрос на патч от {proposal['target_agent']}!**")
             st.write(f"Текущая точность: {proposal['current_accuracy']:.1f}%")
-            st.info(f"💡 **Предложение ИИ:** {proposal['patch_suggestion']}")
+            st.info(f"💡 **Предложение ИИ:** {proposal['message']}") # Тут теперь текст про найм
+            
+            # КНОПКА НАЙМА АГЕНТА
+            if st.button("✅ Нанять агента"):
+                success, msg = hire_new_agent(proposal['new_agent_name'], proposal['category'])
+                if success:
+                    st.success(msg)
+                    st.rerun() # Перезагружаем, чтобы новый агент появился в таблице
+                else:
+                    st.error(msg)
         else:
             st.success(proposal)
 
 # --- ОСНОВНОЙ ИНТЕРФЕЙС ---
-st.title("🏢 Сибирский Элемент v3.4")
-st.markdown("Умный Fallback: Сначала База, если не поняла — подключается PRO.")
+st.title("🏢 Сибирский Элемент v3.5")
+st.markdown("Генератор Отделов: ИИ сам предлагает нанять новых агентов.")
 
-# Отображение истории сообщений
+# Отображение истории
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"], avatar=msg.get("avatar")):
         st.markdown(msg["content"])
 
 # Поле ввода
 if prompt := st.chat_input("Напишите ваш вопрос..."):
-    # 1. Показываем сообщение пользователя
     with st.chat_message("user"):
         st.markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # 2. Получаем ответ от ИИ
     with st.chat_message("assistant", avatar="🤖"):
         with st.spinner("Анализирую..."):
             response = st.session_state.ai_brain.ask(prompt)
             st.markdown(response)
     st.session_state.messages.append({"role": "assistant", "content": response, "avatar": "🤖"})
     
-    # МАГИЯ: Перезапускаем страницу, чтобы боковая панель подтянула новые проценты
     st.rerun()
 
-# Подвал
 st.divider()
-st.caption("Текущая сборка: v3.4 (MetaArchitect + Desire Council) | Автор: Сибирский Элемент")
+st.caption("Текущая сборка: v3.5 (MetaArchitect + Hire) | Автор: Сибирский Элемент")

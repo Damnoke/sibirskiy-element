@@ -3,7 +3,7 @@ from brain_core import MasterAI
 from brain_models import MED_ASKL, MED_HIPPO, FIN_MORGAN, DICT_DAL, SEC_CERBER
 
 # Настройка страницы
-st.set_page_config(page_title="Сибирский Элемент v3.3", page_icon="🏢", layout="wide")
+st.set_page_config(page_title="Сибирский Элемент v3.4", page_icon="🏢", layout="wide")
 
 # Инициализация ИИ в сессии (чтобы память не сбрасывалась)
 if "ai_brain" not in st.session_state:
@@ -45,8 +45,21 @@ with st.sidebar:
         from brain_models import hold_desire_council
         council_decision = hold_desire_council()
         st.info(council_decision)
+            st.divider()
+    st.subheader("🧬 Центр Эволюции")
+    if st.button("🔍 Сканировать систему на застой"):
+        from meta_agent import MetaArchitect
+        architect = MetaArchitect()
+        proposal = architect.analyze_system()
+        
+        if isinstance(proposal, dict):
+            st.warning(f"⚠️ **Запрос на патч от {proposal['target_agent']}!**")
+            st.write(f"Текущая точность: {proposal['current_accuracy']:.1f}%")
+            st.info(f"💡 **Предложение ИИ:** {proposal['patch_suggestion']}")
+        else:
+            st.success(proposal)
 # --- ОСНОВНОЙ ИНТЕРФЕЙС ---
-st.title("🏢 Сибирский Элемент v3.3")
+st.title("🏢 Сибирский Элемент v3.4")
 st.markdown("Умный Fallback: Сначала База, если не поняла — подключается PRO.")
 
 # Отображение истории сообщений

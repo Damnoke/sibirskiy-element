@@ -37,25 +37,23 @@ class LibraryAI:
                     for vocab_word in agent.vocabulary:
                         if root in vocab_word:
                             
-                            # --- СОВЕТ АГЕНТОВ НАЧИНАЕТ РАБОТУ ---
+                            # --- СОВЕТ АГЕНТОВ ---
                             
-                            # 1. АВТОР (Гиппократ) пишет черновик (с рефлексией)
+                            # 1. АВТОР (Гиппократ) с Рефлексией
                             draft = agent.generate_text(vocab_word, length_type=length_type)
                             
-                            # 2. КРИТИК (Асклепий) проверяет черновик
+                            # 2. КРИТИК (Асклепий)
                             critique = ""
                             if agent.name != "Асклепий" and "Асклепий" in [a.name for a in brain_models.ALL_AGENTS]:
                                 if "язв" in draft.lower():
                                     critique = "\n\n🚨 **[КРИТИК | Асклепий]:** Внимание! В тексте упомянута язва. Ибупрофен может быть противопоказан при язвенной болезни! Требуется проверка врачом."
                             
-                            # 3. СТИЛИСТ (Даль) причесывает текст
+                            # 3. СТИЛИСТ (Даль)
                             stylist_report = ""
                             dal = next((a for a in brain_models.ALL_AGENTS if a.name == "Даль"), None)
                             if dal:
-                                # Даль делает базовую чистку: убирает двойные пробелы и ставит точки
                                 polished_draft = draft.replace("  ", " ").replace(" ,", ",").replace(" .", ".").strip()
-                                if not polished_draft.endswith("."):
-                                    polished_draft += "."
+                                if not polished_draft.endswith("."): polished_draft += "."
                                 stylist_report = "\n\n📖 **[СТИЛИСТ | Даль]:** Текст вычитан. Стиль и пунктуация приведены в порядок."
                                 final_text = polished_draft
                             else:

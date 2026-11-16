@@ -1,9 +1,10 @@
 import streamlit as st
 import brain_models
+import os
 from brain_core import MasterAI
 from meta_agent import MetaArchitect
 
-st.set_page_config(page_title="Сибирский Элемент v3.7.3", page_icon="🏢", layout="wide")
+st.set_page_config(page_title="Сибирский Элемент v3.7.4", page_icon="🏢", layout="wide")
 
 if "ai_brain" not in st.session_state: st.session_state.ai_brain = MasterAI()
 if "messages" not in st.session_state: st.session_state.messages = []
@@ -20,10 +21,9 @@ with st.sidebar:
     st.divider()
     st.subheader("📚 Библиотека (Обучение)")
     
-    # Показываем сообщение, если оно есть
     if st.session_state.learn_msg:
         st.success(st.session_state.learn_msg)
-        st.session_state.learn_msg = None # Очищаем после показа
+        st.session_state.learn_msg = None
 
     agent_names = [a.name for a in brain_models.ALL_AGENTS]
     selected_agent = st.selectbox("Выберите агента:", agent_names)
@@ -33,7 +33,7 @@ with st.sidebar:
         if text_input.strip():
             agent = next(a for a in brain_models.ALL_AGENTS if a.name == selected_agent)
             result = agent.read_book(text_input)
-            st.session_state.learn_msg = result # Сохраняем сообщение в память
+            st.session_state.learn_msg = result 
             st.rerun() 
         else: st.warning("Вставьте текст!")
             
@@ -62,8 +62,16 @@ with st.sidebar:
                 st.rerun() 
             else: st.error(msg)
 
-st.title("🏢 Сибирский Элемент v3.7.3")
-st.markdown("Расширенная память: а теперь у агентов большой объем знаний!")
+    # НОВАЯ КНОПКА СБРОСА ПАМЯТИ
+    st.divider()
+    if st.button("🧹 Сбросить память ИИ (Hard Reset)"):
+        if os.path.exists("agents_db.json"):
+            os.remove("agents_db.json")
+        st.session_state.learn_msg = "Память полностью очищена! Все агенты снова на 50%."
+        st.rerun()
+
+st.title("🏢 Сибирский Элемент v3.7.4")
+st.markdown("Умная память: кормите ИИ полными статьями, а не только началом!")
 
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"], avatar=msg.get("avatar")):
@@ -82,4 +90,4 @@ if prompt := st.chat_input("Напишите ваш вопрос..."):
     st.rerun()
 
 st.divider()
-st.caption("Текущая сборка: v3.7.3 (Расширенная память) | Автор: Сибирский Элемент")
+st.caption("Текущая сборка: v3.7.4 (Умная память + Сброс) | Автор: Сибирский Элемент")

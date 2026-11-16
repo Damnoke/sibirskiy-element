@@ -11,7 +11,7 @@ class Agent:
         self.knowledge = knowledge
         self.hidden_memory = set()
         self.vocabulary = set()
-        self.chain = {} # Теперь chain — это словарь словарей (для частот)
+        self.chain = {} 
 
     def challenge_and_grow(self, response_text):
         response_hash = hashlib.md5(response_text.lower().encode()).hexdigest()
@@ -40,9 +40,9 @@ class Agent:
                 self.chain[word] = {}
             if next_word not in self.chain[word]:
                 self.chain[word][next_word] = 0
-            self.chain[word][next_word] += 1 # Считаем частоту
+            self.chain[word][next_word] += 1
 
-        self.prune_memory() # ОЧИЩАЕМ ПАМЯТЬ
+        self.prune_memory()
 
         if new_words_count > 0:
             knowledge_gain = max(1, new_words_count // 10)
@@ -53,19 +53,13 @@ class Agent:
         return f"⏸️ {self.name} уже знает все слова из этого текста."
 
     def prune_memory(self, max_connections=15):
-        """Умная очистка: оставляем только топ-15 самых частых слов"""
         for word in self.chain:
             if len(self.chain[word]) > max_connections:
                 sorted_connections = sorted(self.chain[word].items(), key=lambda item: item[1], reverse=True)[:max_connections]
                 self.chain[word] = dict(sorted_connections)
 
-    def generate_text(self, start_word, length_type="Средний"):
-        if start_word not in self.vocabulary:
-            return f"Я не нашел слово '{start_word}' в своих знаниях."
-        if length_type == "Короткий": max_len = 15
-        elif length_type == "Длинный": max_len = 80
-        else: max_len = 40
-        
+    def _generate_single_draft(self, start_word, max_len):
+        """Создает один черновик"""
         current_word = start_word
         result = [current_word.capitalize()]
         for _ in range(max_len):
@@ -73,14 +67,37 @@ class Agent:
                 words_list = list(self.chain[current_word].keys())
                 weights = list(self.chain[current_word].values())
                 next_word = random.choices(words_list, weights=weights, k=1)[0]
-                
                 result.append(next_word)
                 current_word = next_word
             else: break
-                
-        text = " ".join(result).replace(" .", ".").replace(" ,", ",").capitalize()
-        if not text.endswith("."): text += "."
-        return f"📝 [{self.name}]:\n{text}"
+        return " ".join(result).replace(" .", ".").replace(" ,", ",").capitalize()
+
+    def generate_text(self, start_word, length_type="Средний"):
+        """РЕФЛЕКСИЯ: Генерируем 3 варианта и выбираем лучший"""
+        if start_word not in self.vocabulary:
+            return f"Я не нашел слово '{start_word}' в своих знаниях."
+            
+        if length_type == "Короткий": max_len = 15
+        elif length_type == "Длинный": max_len = 80
+        else: max_len = 40
+        
+        drafts = [self._generate_single_draft(start_word, max_len) for _ in range(3)]
+        
+        best_draft = ""
+        best_score = -1
+        
+        for draft in drafts:
+            words = draft.split()
+            length_score = len(words)
+            repeat_penalty = sum(2 for i in range(len(words)-1) if words[i].lower() == words[i+1].lower())
+            score = length_score - repeat_penalty
+            
+            if score > best_score:
+                best_score = score
+                best_draft = draft
+
+        if not best_draft.endswith("."): best_draft += "."
+        return f"📝 [{self.name} (Рефлексия)]:\n{best_draft}"
 
     def to_dict(self):
         return {"name": self.name, "accuracy": self.accuracy, "knowledge": self.knowledge, "vocabulary": list(self.vocabulary), "chain": self.chain}
@@ -92,7 +109,7 @@ def load_agents():
         try:
             with open(DB_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                if not data: raise ValueError("Empty data") # Если файл пустой после сброса
+                if not data: raise ValueError("Empty data")
                 agents = []
                 for d in data:
                     agent = Agent(d["name"], d["accuracy"], d["knowledge"])

@@ -10,7 +10,7 @@ class Agent:
         self.knowledge = knowledge
         self.hidden_memory = set()
         self.vocabulary = set()
-        self.chain = {} # НОВОЕ: Цепочки слов для генерации
+        self.chain = {} # Цепочки слов для генерации
 
     def challenge_and_grow(self, response_text):
         response_hash = hashlib.md5(response_text.lower().encode()).hexdigest()
@@ -41,7 +41,7 @@ class Agent:
             self.knowledge += knowledge_gain
             self.accuracy = min(100.0, 50.0 + (self.knowledge * 2.5))
             save_agents()
-            return f"📖 {self.name} изучил текст! Новых слов: {new_words_count}. Построено связей: {len(self.chain)}."
+            return f"📖 {self.name} изучил текст! Новых слов: {new_words_count}."
         return f"⏸️ {self.name} уже знает все слова из этого текста."
 
     def generate_text(self, start_word, length_type="Средний"):
@@ -62,7 +62,7 @@ class Agent:
                 
         text = " ".join(result).replace(" .", ".").replace(" ,", ",").capitalize()
         if not text.endswith("."): text += "."
-        return f"📝 [{self.name} ГЕНЕРИРУЕТ]:\n{text}"
+        return f"📝 [{self.name}]:\n{text}"
 
     def to_dict(self):
         return {"name": self.name, "accuracy": self.accuracy, "knowledge": self.knowledge, "vocabulary": list(self.vocabulary), "chain": self.chain}

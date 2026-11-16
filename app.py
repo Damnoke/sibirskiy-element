@@ -15,7 +15,6 @@ if "current_proposal" not in st.session_state: st.session_state.current_proposal
 with st.sidebar:
     st.header("🏆 Таблица лидеров")
     
-    # Вывод всех агентов
     for agent in brain_models.ALL_AGENTS:
         st.write(f"**{agent.name}**")
         st.progress(min(1.0, agent.accuracy / 100.0))
@@ -28,7 +27,6 @@ with st.sidebar:
     agent_names = [a.name for a in brain_models.ALL_AGENTS]
     selected_agent = st.selectbox("Выберите агента:", agent_names)
     
-    # В v3.7 оставляем только ручной ввод текста
     text_input = st.text_area("Вставьте текст (статью, книгу):", height=100)
     
     if st.button("📖 Прочитать и выучить"):
@@ -53,6 +51,14 @@ with st.sidebar:
             st.info(result)
         else:
             st.warning("Введите стартовое слово!")
+    
+    st.divider()
+
+    # БЛОК ГОЛОСА АГЕНТОВ (Тот, который я пропустил!)
+    st.subheader("🗣️ Голос Агентов")
+    if st.button("Созвать Совет"):
+        council_decision = brain_models.hold_desire_council()
+        st.info(council_decision)
     
     st.divider()
     
@@ -84,12 +90,10 @@ with st.sidebar:
 st.title("🏢 Сибирский Элемент v3.7")
 st.markdown("Фарма-Генератор: Обучите агента тексту, а затем сгенерируйте свою статью!")
 
-# Отображение истории сообщений
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"], avatar=msg.get("avatar")):
         st.markdown(msg["content"])
 
-# Поле ввода для чата
 if prompt := st.chat_input("Напишите ваш вопрос..."):
     with st.chat_message("user"): 
         st.markdown(prompt)
@@ -101,9 +105,7 @@ if prompt := st.chat_input("Напишите ваш вопрос..."):
             st.markdown(response)
     st.session_state.messages.append({"role": "assistant", "content": response, "avatar": "🤖"})
     
-    # Перезагрузка для обновления процентов в таблице
     st.rerun()
 
-# Подвал
 st.divider()
 st.caption("Текущая сборка: v3.7 (Фарма-Генератор) | Автор: Сибирский Элемент")

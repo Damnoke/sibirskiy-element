@@ -36,19 +36,32 @@ class LibraryAI:
                     root = w[:4]
                     for vocab_word in agent.vocabulary:
                         if root in vocab_word:
-                            # ШАГ 1: Автор пишет черновик
+                            
+                            # --- СОВЕТ АГЕНТОВ НАЧИНАЕТ РАБОТУ ---
+                            
+                            # 1. АВТОР (Гиппократ) пишет черновик (с рефлексией)
                             draft = agent.generate_text(vocab_word, length_type=length_type)
                             
-                            # ШАГ 2: Критик (Асклепий) проверяет черновик
+                            # 2. КРИТИК (Асклепий) проверяет черновик
                             critique = ""
                             if agent.name != "Асклепий" and "Асклепий" in [a.name for a in brain_models.ALL_AGENTS]:
-                                # Простая проверка: если в тексте есть опасное сочетание (например, язва)
                                 if "язв" in draft.lower():
                                     critique = "\n\n🚨 **[КРИТИК | Асклепий]:** Внимание! В тексте упомянута язва. Ибупрофен может быть противопоказан при язвенной болезни! Требуется проверка врачом."
                             
-                            # ШАГ 3: Стилист (Даль) (В будущем мы добавим реальную чистку)
-                            
-                            return draft + critique
+                            # 3. СТИЛИСТ (Даль) причесывает текст
+                            stylist_report = ""
+                            dal = next((a for a in brain_models.ALL_AGENTS if a.name == "Даль"), None)
+                            if dal:
+                                # Даль делает базовую чистку: убирает двойные пробелы и ставит точки
+                                polished_draft = draft.replace("  ", " ").replace(" ,", ",").replace(" .", ".").strip()
+                                if not polished_draft.endswith("."):
+                                    polished_draft += "."
+                                stylist_report = "\n\n📖 **[СТИЛИСТ | Даль]:** Текст вычитан. Стиль и пунктуация приведены в порядок."
+                                final_text = polished_draft
+                            else:
+                                final_text = draft
+
+                            return final_text + critique + stylist_report
         return None
 
 class ProAI:

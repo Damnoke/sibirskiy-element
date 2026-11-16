@@ -15,7 +15,8 @@ if "learn_msg" not in st.session_state: st.session_state.learn_msg = None
 
 with st.sidebar:
     st.header("🏆 Таблица лидеров")
-    # ВАЖНО: Перезагружаем модуль, чтобы подтянуть свежие данные из файла
+    
+    # ПРИНУДИТЕЛЬНАЯ ПЕРЕЗАГРУЗКА МОДУЛЯ (чтобы сброс работал)
     importlib.reload(brain_models) 
     
     for agent in brain_models.ALL_AGENTS:
@@ -67,12 +68,12 @@ with st.sidebar:
                 st.rerun() 
             else: st.error(msg)
 
-    # НОВАЯ КНОПКА СБРОСА (Записывает пустой список в файл)
+    # ЖЕСТКИЙ СБРОС ПАМЯТИ
     st.divider()
     if st.button("🧹 Сбросить память ИИ (Hard Reset)"):
         with open("agents_db.json", "w", encoding="utf-8") as f:
             json.dump([], f) # Записываем пустой список
-        st.session_state.learn_msg = "Память полностью очищена! Перезагружаю..."
+        st.session_state.learn_msg = "Память полностью очищена!"
         st.rerun()
 
 st.title("🏢 Сибирский Элемент v3.7.4")

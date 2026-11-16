@@ -3,7 +3,7 @@ import brain_models
 from brain_core import MasterAI
 from meta_agent import MetaArchitect
 
-st.set_page_config(page_title="Сибирский Элемент v3.7.1", page_icon="🏢", layout="wide")
+st.set_page_config(page_title="Сибирский Элемент v3.7.2", page_icon="🏢", layout="wide")
 
 if "ai_brain" not in st.session_state: st.session_state.ai_brain = MasterAI()
 if "messages" not in st.session_state: st.session_state.messages = []
@@ -17,12 +17,10 @@ with st.sidebar:
         st.caption(f"Точность: {agent.accuracy:.1f}% | Знаний: {agent.knowledge}")
     
     st.divider()
-    
-    # Только обучение в левой панели
     st.subheader("📚 Библиотека (Обучение)")
     agent_names = [a.name for a in brain_models.ALL_AGENTS]
     selected_agent = st.selectbox("Выберите агента:", agent_names)
-    text_input = st.text_area("Вставьте текст (статью, книгу):", height=100)
+    text_input = st.text_area("Вставьте текст:", height=100)
     
     if st.button("📖 Прочитать и выучить"):
         if text_input.strip():
@@ -30,13 +28,11 @@ with st.sidebar:
             result = agent.read_book(text_input)
             st.success(result)
             st.rerun() 
-        else:
-            st.warning("Вставьте текст!")
+        else: st.warning("Вставьте текст!")
             
     st.divider()
     st.subheader("🗣️ Голос Агентов")
-    if st.button("Созвать Совет"):
-        st.info(brain_models.hold_desire_council())
+    if st.button("Созвать Совет"): st.info(brain_models.hold_desire_council())
     
     st.divider()
     st.subheader("🧬 Центр Эволюции")
@@ -59,8 +55,8 @@ with st.sidebar:
                 st.rerun() 
             else: st.error(msg)
 
-st.title("🏢 Сибирский Элемент v3.7.1")
-st.markdown("Обучение слева, а Генерация — прямо в чате!")
+st.title("🏢 Сибирский Элемент v3.7.2")
+st.markdown("Умный генератор: спросите 'коротко' или 'подробно'!")
 
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"], avatar=msg.get("avatar")):
@@ -79,4 +75,4 @@ if prompt := st.chat_input("Напишите ваш вопрос..."):
     st.rerun()
 
 st.divider()
-st.caption("Текущая сборка: v3.7.1 (Генератор в чате) | Автор: Сибирский Элемент")
+st.caption("Текущая сборка: v3.7.2 (Умный генератор) | Автор: Сибирский Элемент")

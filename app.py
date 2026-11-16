@@ -1,6 +1,8 @@
 import streamlit as st
 import brain_models
 import os
+import json
+import importlib
 from brain_core import MasterAI
 from meta_agent import MetaArchitect
 
@@ -13,6 +15,9 @@ if "learn_msg" not in st.session_state: st.session_state.learn_msg = None
 
 with st.sidebar:
     st.header("🏆 Таблица лидеров")
+    # ВАЖНО: Перезагружаем модуль, чтобы подтянуть свежие данные из файла
+    importlib.reload(brain_models) 
+    
     for agent in brain_models.ALL_AGENTS:
         st.write(f"**{agent.name}**")
         st.progress(min(1.0, agent.accuracy / 100.0))
@@ -62,12 +67,12 @@ with st.sidebar:
                 st.rerun() 
             else: st.error(msg)
 
-    # НОВАЯ КНОПКА СБРОСА ПАМЯТИ
+    # НОВАЯ КНОПКА СБРОСА (Записывает пустой список в файл)
     st.divider()
     if st.button("🧹 Сбросить память ИИ (Hard Reset)"):
-        if os.path.exists("agents_db.json"):
-            os.remove("agents_db.json")
-        st.session_state.learn_msg = "Память полностью очищена! Все агенты снова на 50%."
+        with open("agents_db.json", "w", encoding="utf-8") as f:
+            json.dump([], f) # Записываем пустой список
+        st.session_state.learn_msg = "Память полностью очищена! Перезагружаю..."
         st.rerun()
 
 st.title("🏢 Сибирский Элемент v3.7.4")
@@ -90,4 +95,4 @@ if prompt := st.chat_input("Напишите ваш вопрос..."):
     st.rerun()
 
 st.divider()
-st.caption("Текущая сборка: v3.7.4 (Умная память + Сброс) | Автор: Сибирский Элемент")
+st.caption("Текущая сборка: v3.7.4 (Умная память + Hard Reset) | Автор: Сибирский Элемент")

@@ -19,7 +19,7 @@ class Agent:
             return False, "Ответ уже был в памяти. Развития нет."
         self.hidden_memory.add(response_hash)
         self.knowledge += 1
-        self.accuracy = min(100.0, 50.0 + (self.knowledge * 2.5))
+        self.accuracy = min(100.0, 50.0 + (self.knowledge * 0.5)) # МЕНЬШЕ РОСТ = БОЛЬШЕ ВМЕСТИТЕЛЬНОСТЬ
         if len(self.hidden_memory) > 100: self.hidden_memory.pop()
         save_agents()
         return True, f"✅ Новое знание!"
@@ -41,10 +41,10 @@ class Agent:
         if new_words_count > 0:
             knowledge_gain = max(1, new_words_count // 10)
             self.knowledge += knowledge_gain
-            self.accuracy = min(100.0, 50.0 + (self.knowledge * 2.5))
+            self.accuracy = min(100.0, 50.0 + (self.knowledge * 0.5))
             save_agents()
-            return f"📖 {self.name} изучил текст! Новых слов: {new_words_count}."
-        return f"⏸️ {self.name} уже знает все слова."
+            return f"📖 {self.name} изучил текст! Новых слов: {new_words_count}. Точность: {self.accuracy:.1f}%"
+        return f"⏸️ {self.name} уже знает все слова из этого текста."
 
     def generate_text(self, start_word, length_type="Средний"):
         if start_word not in self.vocabulary:

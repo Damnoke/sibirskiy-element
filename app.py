@@ -6,7 +6,7 @@ import importlib
 from brain_core import MasterAI
 from meta_agent import MetaArchitect
 
-st.set_page_config(page_title="Сибирский Элемент v3.7.4", page_icon="🏢", layout="wide")
+st.set_page_config(page_title="Сибирский Элемент v3.8", page_icon="🏢", layout="wide")
 
 if "ai_brain" not in st.session_state: st.session_state.ai_brain = MasterAI()
 if "messages" not in st.session_state: st.session_state.messages = []
@@ -76,7 +76,7 @@ with st.sidebar:
         st.session_state.learn_msg = "Память полностью очищена!"
         st.rerun()
 
-st.title("🏢 Сибирский Элемент v3.7.4")
+st.title("🏢 Сибирский Элемент v3.8")
 st.markdown("Умная память: кормите ИИ полными статьями, а не только началом!")
 
 for msg in st.session_state.messages:

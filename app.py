@@ -3,11 +3,12 @@ import brain_models
 from brain_core import MasterAI
 from meta_agent import MetaArchitect
 
-st.set_page_config(page_title="Сибирский Элемент v3.7.2", page_icon="🏢", layout="wide")
+st.set_page_config(page_title="Сибирский Элемент v3.7.3", page_icon="🏢", layout="wide")
 
 if "ai_brain" not in st.session_state: st.session_state.ai_brain = MasterAI()
 if "messages" not in st.session_state: st.session_state.messages = []
 if "current_proposal" not in st.session_state: st.session_state.current_proposal = None
+if "learn_msg" not in st.session_state: st.session_state.learn_msg = None
 
 with st.sidebar:
     st.header("🏆 Таблица лидеров")
@@ -18,15 +19,21 @@ with st.sidebar:
     
     st.divider()
     st.subheader("📚 Библиотека (Обучение)")
+    
+    # Показываем сообщение, если оно есть
+    if st.session_state.learn_msg:
+        st.success(st.session_state.learn_msg)
+        st.session_state.learn_msg = None # Очищаем после показа
+
     agent_names = [a.name for a in brain_models.ALL_AGENTS]
     selected_agent = st.selectbox("Выберите агента:", agent_names)
-    text_input = st.text_area("Вставьте текст:", height=100)
+    text_input = st.text_area("Вставьте текст (статью, книгу):", height=100)
     
     if st.button("📖 Прочитать и выучить"):
         if text_input.strip():
             agent = next(a for a in brain_models.ALL_AGENTS if a.name == selected_agent)
             result = agent.read_book(text_input)
-            st.success(result)
+            st.session_state.learn_msg = result # Сохраняем сообщение в память
             st.rerun() 
         else: st.warning("Вставьте текст!")
             
@@ -55,8 +62,8 @@ with st.sidebar:
                 st.rerun() 
             else: st.error(msg)
 
-st.title("🏢 Сибирский Элемент v3.7.2")
-st.markdown("Умный генератор: спросите 'коротко' или 'подробно'!")
+st.title("🏢 Сибирский Элемент v3.7.3")
+st.markdown("Расширенная память: а теперь у агентов большой объем знаний!")
 
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"], avatar=msg.get("avatar")):
@@ -75,4 +82,4 @@ if prompt := st.chat_input("Напишите ваш вопрос..."):
     st.rerun()
 
 st.divider()
-st.caption("Текущая сборка: v3.7.2 (Умный генератор) | Автор: Сибирский Элемент")
+st.caption("Текущая сборка: v3.7.3 (Расширенная память) | Автор: Сибирский Элемент")

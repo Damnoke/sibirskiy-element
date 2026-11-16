@@ -2,7 +2,7 @@ import json
 import os
 import hashlib
 import random
-import re # Добавили для очистки текста
+import re
 
 class Agent:
     def __init__(self, name, accuracy=50.0, knowledge=0):
@@ -25,9 +25,7 @@ class Agent:
         return True, f"✅ Новое знание!"
 
     def read_book(self, text):
-        # МАГИЯ: Удаляем сноски вида [1], [2], [3] из текста
         text = re.sub(r'\[\d+\]', '', text)
-        
         clean_text = text.lower().replace(".", " .").replace(",", " ,").replace("!", " !").replace("?", " ?")
         words = clean_text.split()
         new_words_count = 0
@@ -46,30 +44,25 @@ class Agent:
             self.accuracy = min(100.0, 50.0 + (self.knowledge * 2.5))
             save_agents()
             return f"📖 {self.name} изучил текст! Новых слов: {new_words_count}."
-        return f"⏸️ {self.name} уже знает все слова из этого текста."
+        return f"⏸️ {self.name} уже знает все слова."
 
     def generate_text(self, start_word, length_type="Средний"):
         if start_word not in self.vocabulary:
             return f"Я не нашел слово '{start_word}' в своих знаниях."
-            
         if length_type == "Короткий": max_len = 15
         elif length_type == "Длинный": max_len = 80
         else: max_len = 40
         
         current_word = start_word
         result = [current_word.capitalize()]
-        
         for _ in range(max_len):
             if current_word in self.chain:
                 next_word = random.choice(self.chain[current_word])
-                # Защита от зацикливания (если слово повторяется дважды подряд)
                 if next_word == current_word and len(self.chain[current_word]) > 1:
                     next_word = random.choice([w for w in self.chain[current_word] if w != current_word])
-                
                 result.append(next_word)
                 current_word = next_word
-            else: 
-                break
+            else: break
                 
         text = " ".join(result).replace(" .", ".").replace(" ,", ",").capitalize()
         if not text.endswith("."): text += "."

@@ -14,7 +14,6 @@ def medical_dept(text):
         
     for k, v in DEFAULT_MED.items():
         if k in text_low:
-            # Вместо старого train(1) используем новую математику
             MED_ASKL.knowledge += 1
             MED_ASKL.accuracy = min(100.0, 50.0 + (MED_ASKL.knowledge * 2.5))
             brain_models.save_agents()

@@ -11,7 +11,7 @@ class Agent:
         self.knowledge = knowledge
         self.hidden_memory = set()
         self.vocabulary = set()
-        self.chain = {} 
+        self.chain = {} # Теперь chain — это словарь словарей (для частот)
 
     def challenge_and_grow(self, response_text):
         response_hash = hashlib.md5(response_text.lower().encode()).hexdigest()
@@ -19,7 +19,7 @@ class Agent:
             return False, "Ответ уже был в памяти. Развития нет."
         self.hidden_memory.add(response_hash)
         self.knowledge += 1
-        self.accuracy = min(100.0, 50.0 + (self.knowledge * 0.5)) # МЕНЬШЕ РОСТ = БОЛЬШЕ ВМЕСТИТЕЛЬНОСТЬ
+        self.accuracy = min(100.0, 50.0 + (self.knowledge * 0.25))
         if len(self.hidden_memory) > 100: self.hidden_memory.pop()
         save_agents()
         return True, f"✅ Новое знание!"
@@ -29,22 +29,35 @@ class Agent:
         clean_text = text.lower().replace(".", " .").replace(",", " ,").replace("!", " !").replace("?", " ?")
         words = clean_text.split()
         new_words_count = 0
+        
         for i in range(len(words) - 1):
             word = words[i]
             next_word = words[i+1]
             if word not in self.vocabulary:
                 self.vocabulary.add(word)
                 new_words_count += 1
-            if word not in self.chain: self.chain[word] = []
-            self.chain[word].append(next_word)
+            if word not in self.chain: 
+                self.chain[word] = {}
+            if next_word not in self.chain[word]:
+                self.chain[word][next_word] = 0
+            self.chain[word][next_word] += 1 # Считаем частоту
+
+        self.prune_memory() # ОЧИЩАЕМ ПАМЯТЬ
 
         if new_words_count > 0:
             knowledge_gain = max(1, new_words_count // 10)
             self.knowledge += knowledge_gain
-            self.accuracy = min(100.0, 50.0 + (self.knowledge * 0.5))
+            self.accuracy = min(100.0, 50.0 + (self.knowledge * 0.25))
             save_agents()
             return f"📖 {self.name} изучил текст! Новых слов: {new_words_count}. Точность: {self.accuracy:.1f}%"
         return f"⏸️ {self.name} уже знает все слова из этого текста."
+
+    def prune_memory(self, max_connections=15):
+        """Умная очистка: оставляем только топ-15 самых частых слов"""
+        for word in self.chain:
+            if len(self.chain[word]) > max_connections:
+                sorted_connections = sorted(self.chain[word].items(), key=lambda item: item[1], reverse=True)[:max_connections]
+                self.chain[word] = dict(sorted_connections)
 
     def generate_text(self, start_word, length_type="Средний"):
         if start_word not in self.vocabulary:
@@ -56,10 +69,11 @@ class Agent:
         current_word = start_word
         result = [current_word.capitalize()]
         for _ in range(max_len):
-            if current_word in self.chain:
-                next_word = random.choice(self.chain[current_word])
-                if next_word == current_word and len(self.chain[current_word]) > 1:
-                    next_word = random.choice([w for w in self.chain[current_word] if w != current_word])
+            if current_word in self.chain and len(self.chain[current_word]) > 0:
+                words_list = list(self.chain[current_word].keys())
+                weights = list(self.chain[current_word].values())
+                next_word = random.choices(words_list, weights=weights, k=1)[0]
+                
                 result.append(next_word)
                 current_word = next_word
             else: break
@@ -78,6 +92,7 @@ def load_agents():
         try:
             with open(DB_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
+                if not data: raise ValueError("Empty data") # Если файл пустой после сброса
                 agents = []
                 for d in data:
                     agent = Agent(d["name"], d["accuracy"], d["knowledge"])

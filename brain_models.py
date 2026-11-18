@@ -56,6 +56,7 @@ class Agent:
             self.knowledge += knowledge_gain
             self.accuracy = min(100.0, 50.0 + (self.knowledge * 0.25))
             
+            # Межотраслевой мост и обучение своих
             if self.get_level() == "Большой (Large) 🦅":
                 self.teach_others()
 
@@ -68,9 +69,11 @@ class Agent:
         bridge_topics = {"Финансы": ["Медицина"], "Медицина": ["Финансы", "Безопасность"]}
         for agent in ALL_AGENTS:
             if agent.name == self.name: continue 
+            # Учим своих (Малых)
             if agent.category == self.category and agent.get_level() == "Малый (Small) 🐣":
                 agent.knowledge += 1
                 agent.accuracy = min(100.0, 50.0 + (agent.knowledge * 0.25))
+            # Учим смежников (по мосту)
             elif self.category in bridge_topics:
                 if agent.category in bridge_topics[self.category] and agent.get_level() != "Большой (Large) 🦅":
                     agent.knowledge += 1 

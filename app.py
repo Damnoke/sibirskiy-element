@@ -6,7 +6,7 @@ import importlib
 from brain_core import MasterAI
 from meta_agent import MetaArchitect
 
-st.set_page_config(page_title="Сибирский Элемент v3.8.1", page_icon="🏢", layout="wide")
+st.set_page_config(page_title="Сибирский Элемент v3.8.2", page_icon="🏢", layout="wide")
 
 if "ai_brain" not in st.session_state: st.session_state.ai_brain = MasterAI()
 if "messages" not in st.session_state: st.session_state.messages = []
@@ -15,13 +15,11 @@ if "learn_msg" not in st.session_state: st.session_state.learn_msg = None
 
 with st.sidebar:
     st.header("🏆 Таблица лидеров")
-    
-    # ПРИНУДИТЕЛЬНАЯ ПЕРЕЗАГРУЗКА МОДУЛЯ (чтобы сброс работал)
     importlib.reload(brain_models) 
     
     for agent in brain_models.ALL_AGENTS:
         st.write(f"**{agent.name}**")
-        st.progress(min(1.0, agent.accuracy / 100.0))
+        st.progress(min(1.0, max(0.0, agent.accuracy / 100.0)))
         st.caption(f"Точность: {agent.accuracy:.1f}% | Знаний: {agent.knowledge}")
     
     st.divider()
@@ -68,20 +66,46 @@ with st.sidebar:
                 st.rerun() 
             else: st.error(msg)
 
-    # ЖЕСТКИЙ СБРОС ПАМЯТИ
     st.divider()
     if st.button("🧹 Сбросить память ИИ (Hard Reset)"):
         with open("agents_db.json", "w", encoding="utf-8") as f:
-            json.dump([], f) # Записываем пустой список
+            json.dump([], f) 
         st.session_state.learn_msg = "Память полностью очищена!"
         st.rerun()
 
-st.title("🏢 Сибирский Элемент v3.8.1")
-st.markdown("Умная память: кормите ИИ полными статьями, а не только началом!")
+st.title("🏢 Сибирский Элемент v3.8.2")
+st.markdown("Оценивайте ответы ИИ! 👍 — хвалим, 👎 — ругаем.")
 
-for msg in st.session_state.messages:
+# ОТРИСОВКА ИСТОРИИ С КНОПКАМИ ОЦЕНКИ
+for i, msg in enumerate(st.session_state.messages):
     with st.chat_message(msg["role"], avatar=msg.get("avatar")):
-        st.markdown(msg["content"])
+        content = msg["content"]
+        
+        if msg["role"] == "assistant" and "[AGENT_ID:" in content:
+            text_part, agent_id = content.split("\n\n[AGENT_ID:")
+            agent_name = agent_id.replace("]", "")
+            st.markdown(text_part)
+            
+            # Кнопки оценки
+            col1, col2, _ = st.columns([1, 1, 8])
+            with col1:
+                if st.button("👍", key=f"like_{i}"):
+                    agent = next((a for a in brain_models.ALL_AGENTS if a.name == agent_name), None)
+                    if agent:
+                        agent.accuracy = min(100.0, agent.accuracy + 1.5)
+                        brain_models.save_agents()
+                        st.toast(f"Агент {agent_name} доволен! (+1.5%)")
+                        st.rerun()
+            with col2:
+                if st.button("👎", key=f"dislike_{i}"):
+                    agent = next((a for a in brain_models.ALL_AGENTS if a.name == agent_name), None)
+                    if agent:
+                        agent.accuracy = max(0.0, agent.accuracy - 1.5)
+                        brain_models.save_agents()
+                        st.toast(f"Агент {agent_name} получил наказание! (-1.5%)")
+                        st.rerun()
+        else:
+            st.markdown(content)
 
 if prompt := st.chat_input("Напишите ваш вопрос..."):
     with st.chat_message("user"): 
@@ -89,11 +113,13 @@ if prompt := st.chat_input("Напишите ваш вопрос..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     
     with st.chat_message("assistant", avatar="🤖"):
-        with st.spinner("Генерирую..."):
+        with st.spinner("Думаю..."):
             response = st.session_state.ai_brain.ask(prompt)
-            st.markdown(response)
+            display_response = response.split("\n\n[AGENT_ID:")[0] if "[AGENT_ID:" in response else response
+            st.markdown(display_response)
+            
     st.session_state.messages.append({"role": "assistant", "content": response, "avatar": "🤖"})
     st.rerun()
 
 st.divider()
-st.caption("Текущая сборка: v3.8.1 (Умная память + Hard Reset) | Автор: Сибирский Элемент")
+st.caption("Текущая сборка: v3.8.2 (Система Оценки) | Автор: Сибирский Элемент")

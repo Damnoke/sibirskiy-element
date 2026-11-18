@@ -23,8 +23,8 @@ class LibraryAI:
         text_low = text.lower()
         
         length_type = "Средний"
-        if any(w in text_low for w in ["коротко", "кратко", "быстро"]): length_type = "Короткий"
-        elif any(w in text_low for w in ["подробно", "длинно", "всё", "полностью"]): length_type = "Длинный"
+        if any(w in text_low for w in ["коротко", "кратко"]): length_type = "Короткий"
+        elif any(w in text_low for w in ["подробно", "длинно"]): length_type = "Длинный"
 
         clean_text = re.sub(r'[^\w\s]', '', text_low)
         stop_words = ["расскажи", "коротко", "подробно", "про", "что", "ты", "знаешь", "мне", "как", "это"]
@@ -37,16 +37,14 @@ class LibraryAI:
                     for vocab_word in agent.vocabulary:
                         if root in vocab_word:
                             
-                            # --- СОВЕТ АГЕНТОВ ---
-                            
-                            # 1. АВТОР (Гиппократ) с Рефлексией
+                            # 1. АВТОР (с Рефлексией)
                             draft = agent.generate_text(vocab_word, length_type=length_type)
                             
                             # 2. КРИТИК (Асклепий)
                             critique = ""
                             if agent.name != "Асклепий" and "Асклепий" in [a.name for a in brain_models.ALL_AGENTS]:
                                 if "язв" in draft.lower():
-                                    critique = "\n\n🚨 **[КРИТИК | Асклепий]:** Внимание! В тексте упомянута язва. Ибупрофен может быть противопоказан при язвенной болезни! Требуется проверка врачом."
+                                    critique = "\n\n🚨 **[КРИТИК | Асклепий]:** Внимание! В тексте упомянута язва. Ибупрофен может быть противопоказан! Требуется проверка врачом."
                             
                             # 3. СТИЛИСТ (Даль)
                             stylist_report = ""
@@ -59,7 +57,8 @@ class LibraryAI:
                             else:
                                 final_text = draft
 
-                            return final_text + critique + stylist_report
+                            # ВОЗВРАЩАЕМ ОТВЕТ + СКРЫТЫЙ ID АГЕНТА ДЛЯ КНОПОК
+                            return final_text + critique + stylist_report + f"\n\n[AGENT_ID:{agent.name}]"
         return None
 
 class ProAI:

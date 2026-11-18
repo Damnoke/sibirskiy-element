@@ -1,12 +1,10 @@
 import streamlit as st
 import brain_models
-import os
-import json
 import importlib
 from brain_core import MasterAI
 from meta_agent import MetaArchitect
 
-st.set_page_config(page_title="Сибирский Элемент v3.9", page_icon="🏢", layout="wide")
+st.set_page_config(page_title="Сибирский Элемент v3.9.1", page_icon="🏢", layout="wide")
 
 if "ai_brain" not in st.session_state: st.session_state.ai_brain = MasterAI()
 if "messages" not in st.session_state: st.session_state.messages = []
@@ -18,7 +16,6 @@ with st.sidebar:
     importlib.reload(brain_models) 
     
     for agent in brain_models.ALL_AGENTS:
-        # Выводим Имя, Отдел и Уровень
         st.write(f"**{agent.name}** [{agent.category}] — {agent.get_level()}")
         st.progress(min(1.0, max(0.0, agent.accuracy / 100.0)))
         st.caption(f"Точность: {agent.accuracy:.1f}% | Знаний: {agent.knowledge}")
@@ -67,15 +64,8 @@ with st.sidebar:
                 st.rerun() 
             else: st.error(msg)
 
-    st.divider()
-    if st.button("🧹 Сбросить память ИИ (Hard Reset)"):
-        with open("agents_db.json", "w", encoding="utf-8") as f:
-            json.dump([], f) 
-        st.session_state.learn_msg = "Память полностью очищена!"
-        st.rerun()
-
-st.title("🏢 Сибирский Элемент v3.9")
-st.markdown("Иерархия и Межотраслевой мост: Большие агенты обучают Малых!")
+st.title("🏢 Сибирский Элемент v3.9.1")
+st.markdown("SQLite база данных + Режимы рассуждений")
 
 for i, msg in enumerate(st.session_state.messages):
     with st.chat_message(msg["role"], avatar=msg.get("avatar")):
@@ -106,14 +96,26 @@ for i, msg in enumerate(st.session_state.messages):
         else:
             st.markdown(content)
 
+# КНОПКИ РЕЖИМОВ
+st.markdown("---")
+mode_selection = st.radio(
+    "Выберите режим работы ИИ:",
+    ["🚀 Обычный", "🌐 Поиск в сети", "🧠 СибСинк (Рассуждение)"],
+    horizontal=True,
+    index=0
+)
+
+mode_map = {"🚀 Обычный": "normal", "🌐 Поиск в сети": "search", "🧠 СибСинк (Рассуждение)": "sibthink"}
+current_mode = mode_map[mode_selection]
+
 if prompt := st.chat_input("Напишите ваш вопрос..."):
     with st.chat_message("user"): 
         st.markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
     
     with st.chat_message("assistant", avatar="🤖"):
-        with st.spinner("Думаю..."):
-            response = st.session_state.ai_brain.ask(prompt)
+        with st.spinner(f"Режим: {mode_selection}..."):
+            response = st.session_state.ai_brain.ask(prompt, mode=current_mode)
             display_response = response.split("\n\n[AGENT_ID:")[0] if "[AGENT_ID:" in response else response
             st.markdown(display_response)
             
@@ -121,4 +123,4 @@ if prompt := st.chat_input("Напишите ваш вопрос..."):
     st.rerun()
 
 st.divider()
-st.caption("Текущая сборка: v3.9 (Иерархия и Мосты) | Автор: Сибирский Элемент")
+st.caption("Текущая сборка: v3.9.1 (SQLite + Режимы) | Автор: Сибирский Элемент")

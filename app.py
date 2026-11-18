@@ -75,8 +75,11 @@ for i, msg in enumerate(st.session_state.messages):
         content = msg["content"]
         
         if msg["role"] == "assistant" and "[AGENT_ID:" in content:
-            text_part, agent_id = content.split("\n\n[AGENT_ID:")
-            agent_name = agent_id.replace("]", "")
+            # Безопасный сплит
+            parts = content.split("\n\n[AGENT_ID:")
+            text_part = parts[0]
+            agent_name = parts[1].replace("]", "") if len(parts) > 1 else "Неизвестный"
+            
             st.markdown(text_part)
             
             col1, col2, _ = st.columns([1, 1, 8])

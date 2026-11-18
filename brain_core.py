@@ -5,6 +5,7 @@ import requests
 from bs4 import BeautifulSoup
 import brain_models 
 from brain_departments import medical_dept, finance_dept, dict_dept
+import urllib.parse
 
 class BaseAI:
     def ask(self, text):
@@ -26,20 +27,30 @@ class BaseAI:
 def web_search(query):
     try:
         clean_query = query.replace("расскажи про", "").replace("что такое", "").strip()
-        search_url = f"https://ru.wikipedia.org/w/api.php?action=query&list=search&srsearch={clean_query}&utf8=&format=json"
-        res = requests.get(search_url, timeout=5).json()
+        # КОДИРУЕМ ЗАПРОС (чтобы русские буквы правильно передавались в API)
+        encoded_query = urllib.parse.quote(clean_query)
+        
+        search_url = f"https://ru.wikipedia.org/w/api.php?action=query&list=search&srsearch={encoded_query}&utf8=&format=json"
+        headers = {'User-Agent': 'SibirskiyElement/3.9 (test@example.com)'}
+        res = requests.get(search_url, headers=headers, timeout=5).json()
         
         if not res['query']['search']:
             return None
             
         page_title = res['query']['search'][0]['title']
-        page_url = f"https://ru.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles={page_title}&format=json"
-        page_res = requests.get(page_url, timeout=5).json()
+        encoded_title = urllib.parse.quote(page_title)
+        
+        page_url = f"https://ru.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles={encoded_title}&format=json"
+        page_res = requests.get(page_url, headers=headers, timeout=5).json()
         pages = page_res['query']['pages']
         extract = list(pages.values())[0].get('extract', '')
         
+        if not extract:
+            return f"Нашел статью «{page_title}», но не смог извлечь текст."
+            
         return extract[:800] + "..."
-    except:
+    except Exception as e:
+        print(f"Ошибка поиска: {e}")
         return None
 
 class LibraryAI:
@@ -49,9 +60,10 @@ class LibraryAI:
         if mode == "search":
             search_result = web_search(text)
             if search_result:
-                return f"🌐 **[SEARCH]:**\nЯ нашел информацию в Википедии:\n\n{search_result}"
+                # ДОБАВЛЯЕМ [AGENT_ID:Цербер], чтобы появились кнопки
+                return f"🌐 **[SEARCH]:**\nЯ нашел информацию в Википедии:\n\n{search_result}\n\n[AGENT_ID:Цербер]"
             else:
-                return "🌐 **[SEARCH]:** Не удалось найти точный ответ."
+                return "🌐 **[SEARCH]:** Не удалось найти точный ответ. Попробуйте написать короче (например, просто 'Наполеон').\n\n[AGENT_ID:Цербер]"
 
         length_type = "Средний"
         if any(w in text_low for w in ["коротко", "кратко"]): length_type = "Короткий"
@@ -91,7 +103,7 @@ class LibraryAI:
 
 class ProAI:
     def ask(self, text):
-        return f"💬 [PRO-ВЕРСИЯ] Запрос «{text}» сложен. Загрузите текст в 'Библиотеку' или включите 'Search'."
+        return f"💬 [PRO-ВЕРСИЯ] Запрос «{text}» сложен. Загрузите текст в 'Библиотеку' или включите 'Search'.\n\n[AGENT_ID:Цербер]"
 
 class MasterAI:
     def __init__(self):

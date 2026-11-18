@@ -6,7 +6,10 @@ from meta_agent import MetaArchitect
 
 st.set_page_config(page_title="Сибирский Элемент v3.9.1", page_icon="🏢", layout="wide")
 
-if "ai_brain" not in st.session_state: st.session_state.ai_brain = MasterAI()
+if "ai_brain" not in st.session_state or st.session_state.get("version") != "3.9.1":
+    st.session_state.ai_brain = MasterAI()
+    st.session_state.version = "3.9.1"
+
 if "messages" not in st.session_state: st.session_state.messages = []
 if "current_proposal" not in st.session_state: st.session_state.current_proposal = None
 if "learn_msg" not in st.session_state: st.session_state.learn_msg = None
@@ -21,7 +24,7 @@ with st.sidebar:
         st.caption(f"Точность: {agent.accuracy:.1f}% | Знаний: {agent.knowledge}")
     
     st.divider()
-    st.subheader("📚 Библиотека (Обучение)")
+    st.subheader("📚 Библиотека")
     
     if st.session_state.learn_msg:
         st.success(st.session_state.learn_msg)
@@ -29,7 +32,7 @@ with st.sidebar:
 
     agent_names = [a.name for a in brain_models.ALL_AGENTS]
     selected_agent = st.selectbox("Выберите агента:", agent_names)
-    text_input = st.text_area("Вставьте текст (статью, книгу):", height=100)
+    text_input = st.text_area("Вставьте текст:", height=100)
     
     if st.button("📖 Прочитать и выучить"):
         if text_input.strip():
@@ -45,7 +48,7 @@ with st.sidebar:
     
     st.divider()
     st.subheader("🧬 Центр Эволюции")
-    if st.button("🔍 Сканировать систему на застой"):
+    if st.button("🔍 Сканировать систему"):
         proposal = MetaArchitect().analyze_system()
         if isinstance(proposal, dict): st.session_state.current_proposal = proposal 
         else:
@@ -65,7 +68,7 @@ with st.sidebar:
             else: st.error(msg)
 
 st.title("🏢 Сибирский Элемент v3.9.1")
-st.markdown("SQLite база данных + Режимы рассуждений")
+st.markdown("SQLite база данных + Режимы (Chat, Search, SibThink)")
 
 for i, msg in enumerate(st.session_state.messages):
     with st.chat_message(msg["role"], avatar=msg.get("avatar")):
@@ -99,13 +102,13 @@ for i, msg in enumerate(st.session_state.messages):
 # КНОПКИ РЕЖИМОВ
 st.markdown("---")
 mode_selection = st.radio(
-    "Выберите режим работы ИИ:",
-    ["🚀 Обычный", "🌐 Поиск в сети", "🧠 СибСинк (Рассуждение)"],
+    "Режим:",
+    ["🚀 Chat", "🌐 Search", "🧠 SibThink"], 
     horizontal=True,
-    index=0
+    label_visibility="collapsed"
 )
 
-mode_map = {"🚀 Обычный": "normal", "🌐 Поиск в сети": "search", "🧠 СибСинк (Рассуждение)": "sibthink"}
+mode_map = {"🚀 Chat": "normal", "🌐 Search": "search", "🧠 SibThink": "sibthink"}
 current_mode = mode_map[mode_selection]
 
 if prompt := st.chat_input("Напишите ваш вопрос..."):
@@ -114,7 +117,7 @@ if prompt := st.chat_input("Напишите ваш вопрос..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     
     with st.chat_message("assistant", avatar="🤖"):
-        with st.spinner(f"Режим: {mode_selection}..."):
+        with st.spinner(f"Режим: {mode_selection}. Думаю..."):
             response = st.session_state.ai_brain.ask(prompt, mode=current_mode)
             display_response = response.split("\n\n[AGENT_ID:")[0] if "[AGENT_ID:" in response else response
             st.markdown(display_response)
@@ -122,5 +125,4 @@ if prompt := st.chat_input("Напишите ваш вопрос..."):
     st.session_state.messages.append({"role": "assistant", "content": response, "avatar": "🤖"})
     st.rerun()
 
-st.divider()
 st.caption("Текущая сборка: v3.9.1 (SQLite + Режимы) | Автор: Сибирский Элемент")

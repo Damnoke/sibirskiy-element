@@ -5,13 +5,23 @@ import random
 import re
 
 class Agent:
-    def __init__(self, name, accuracy=50.0, knowledge=0):
+    def __init__(self, name, category="Общее", accuracy=50.0, knowledge=0):
         self.name = name
+        self.category = category # Отдел (Медицина, Финансы и т.д.)
         self.accuracy = accuracy
         self.knowledge = knowledge
         self.hidden_memory = set()
         self.vocabulary = set()
         self.chain = {} 
+
+    def get_level(self):
+        """Определяет уровень агента на основе его знаний"""
+        if self.knowledge > 30:
+            return "Большой (Large) 🦅"
+        elif self.knowledge > 10:
+            return "Средний (Medium) 🐺"
+        else:
+            return "Малый (Small) 🐣"
 
     def challenge_and_grow(self, response_text):
         response_hash = hashlib.md5(response_text.lower().encode()).hexdigest()
@@ -48,9 +58,39 @@ class Agent:
             knowledge_gain = max(1, new_words_count // 10)
             self.knowledge += knowledge_gain
             self.accuracy = min(100.0, 50.0 + (self.knowledge * 0.25))
+            
+            # МЕХАНИЗМ ОБУЧЕНИЯ: Если агент стал Большим, он учит других
+            if self.get_level() == "Большой (Large) 🦅":
+                self.teach_others()
+
             save_agents()
-            return f"📖 {self.name} изучил текст! Новых слов: {new_words_count}. Точность: {self.accuracy:.1f}%"
+            return f"📖 {self.name} ({self.get_level()}) изучил текст! Новых слов: {new_words_count}."
         return f"⏸️ {self.name} уже знает все слова из этого текста."
+
+    def teach_others(self):
+        """Большой агент передает знания Малым (внутри отдела и по мостам)"""
+        global ALL_AGENTS
+        
+        # Твоя идея: Межотраслевые мосты
+        bridge_topics = {
+            "Финансы": ["Медицина"], 
+            "Медицина": ["Финансы", "Безопасность"]
+        }
+
+        for agent in ALL_AGENTS:
+            if agent.name == self.name: 
+                continue 
+
+            # 1. Обучение внутри отдела
+            if agent.category == self.category and agent.get_level() == "Малый (Small) 🐣":
+                agent.knowledge += 1
+                agent.accuracy = min(100.0, 50.0 + (agent.knowledge * 0.25))
+
+            # 2. Межотраслевое обучение (Мосты)
+            elif self.category in bridge_topics:
+                if agent.category in bridge_topics[self.category] and agent.get_level() != "Большой (Large) 🦅":
+                    agent.knowledge += 1 
+                    agent.accuracy = min(100.0, 50.0 + (agent.knowledge * 0.25))
 
     def prune_memory(self, max_connections=15):
         for word in self.chain:
@@ -59,7 +99,6 @@ class Agent:
                 self.chain[word] = dict(sorted_connections)
 
     def _generate_single_draft(self, start_word, max_len):
-        """Создает один черновик"""
         current_word = start_word
         result = [current_word.capitalize()]
         for _ in range(max_len):
@@ -73,7 +112,6 @@ class Agent:
         return " ".join(result).replace(" .", ".").replace(" ,", ",").capitalize()
 
     def generate_text(self, start_word, length_type="Средний"):
-        """РЕФЛЕКСИЯ: Генерируем 3 варианта и выбираем лучший"""
         if start_word not in self.vocabulary:
             return f"Я не нашел слово '{start_word}' в своих знаниях."
             
@@ -97,10 +135,10 @@ class Agent:
                 best_draft = draft
 
         if not best_draft.endswith("."): best_draft += "."
-        return f"📝 [{self.name} (Рефлексия)]:\n{best_draft}"
+        return f"📝 [{self.name} ({self.get_level()})]:\n{best_draft}"
 
     def to_dict(self):
-        return {"name": self.name, "accuracy": self.accuracy, "knowledge": self.knowledge, "vocabulary": list(self.vocabulary), "chain": self.chain}
+        return {"name": self.name, "category": self.category, "accuracy": self.accuracy, "knowledge": self.knowledge, "vocabulary": list(self.vocabulary), "chain": self.chain}
 
 DB_FILE = "agents_db.json"
 
@@ -112,13 +150,20 @@ def load_agents():
                 if not data: raise ValueError("Empty data")
                 agents = []
                 for d in data:
-                    agent = Agent(d["name"], d["accuracy"], d["knowledge"])
+                    cat = d.get("category", "Общее") 
+                    agent = Agent(d["name"], category=cat, accuracy=d["accuracy"], knowledge=d["knowledge"])
                     if "vocabulary" in d: agent.vocabulary = set(d["vocabulary"])
                     if "chain" in d: agent.chain = d["chain"]
                     agents.append(agent)
                 return agents
         except: pass
-    return [Agent("Асклепий"), Agent("Гиппократ"), Agent("Морган"), Agent("Даль"), Agent("Цербер")]
+    return [
+        Agent("Асклепий", "Медицина"), 
+        Agent("Гиппократ", "Медицина"), 
+        Agent("Морган", "Финансы"), 
+        Agent("Даль", "Словарь"), 
+        Agent("Цербер", "Безопасность")
+    ]
 
 def save_agents():
     if 'ALL_AGENTS' in globals():
@@ -136,13 +181,13 @@ def hold_desire_council():
     desires = [{"agent": a, "score": 100.0 - a.accuracy} for a in ALL_AGENTS]
     desires.sort(key=lambda x: x["score"], reverse=True)
     top_agent = desires[0]["agent"]
-    return f"🗣️ **{top_agent.name}** просит слова:\n*\"Я застрял на {top_agent.accuracy:.1f}%. Мне нужен новый материал!\"*"
+    return f"🗣️ **{top_agent.name}** [{top_agent.category}] ({top_agent.get_level()}) просит слова:\n*\"Я застрял на {top_agent.accuracy:.1f}%. Мне нужен новый материал!\"*"
 
 def hire_new_agent(name, category):
     global ALL_AGENTS
     for agent in ALL_AGENTS:
         if agent.name == name: return False, f"Агент {name} уже есть."
-    new_agent = Agent(name=name, accuracy=50.0, knowledge=0)
+    new_agent = Agent(name=name, category=category, accuracy=50.0, knowledge=0)
     ALL_AGENTS.append(new_agent)
     save_agents()
-    return True, f"🎉 Агент {name} нанят!"
+    return True, f"🎉 Агент {name} нанят в отдел {category}!"

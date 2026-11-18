@@ -6,7 +6,7 @@ import importlib
 from brain_core import MasterAI
 from meta_agent import MetaArchitect
 
-st.set_page_config(page_title="Сибирский Элемент v3.8.2", page_icon="🏢", layout="wide")
+st.set_page_config(page_title="Сибирский Элемент v3.9", page_icon="🏢", layout="wide")
 
 if "ai_brain" not in st.session_state: st.session_state.ai_brain = MasterAI()
 if "messages" not in st.session_state: st.session_state.messages = []
@@ -18,7 +18,8 @@ with st.sidebar:
     importlib.reload(brain_models) 
     
     for agent in brain_models.ALL_AGENTS:
-        st.write(f"**{agent.name}**")
+        # Выводим Имя, Отдел и Уровень
+        st.write(f"**{agent.name}** [{agent.category}] — {agent.get_level()}")
         st.progress(min(1.0, max(0.0, agent.accuracy / 100.0)))
         st.caption(f"Точность: {agent.accuracy:.1f}% | Знаний: {agent.knowledge}")
     
@@ -73,10 +74,9 @@ with st.sidebar:
         st.session_state.learn_msg = "Память полностью очищена!"
         st.rerun()
 
-st.title("🏢 Сибирский Элемент v3.8.2")
-st.markdown("Оценивайте ответы ИИ! 👍 — хвалим, 👎 — ругаем.")
+st.title("🏢 Сибирский Элемент v3.9")
+st.markdown("Иерархия и Межотраслевой мост: Большие агенты обучают Малых!")
 
-# ОТРИСОВКА ИСТОРИИ С КНОПКАМИ ОЦЕНКИ
 for i, msg in enumerate(st.session_state.messages):
     with st.chat_message(msg["role"], avatar=msg.get("avatar")):
         content = msg["content"]
@@ -86,7 +86,6 @@ for i, msg in enumerate(st.session_state.messages):
             agent_name = agent_id.replace("]", "")
             st.markdown(text_part)
             
-            # Кнопки оценки
             col1, col2, _ = st.columns([1, 1, 8])
             with col1:
                 if st.button("👍", key=f"like_{i}"):
@@ -122,4 +121,4 @@ if prompt := st.chat_input("Напишите ваш вопрос..."):
     st.rerun()
 
 st.divider()
-st.caption("Текущая сборка: v3.8.2 (Система Оценки) | Автор: Сибирский Элемент")
+st.caption("Текущая сборка: v3.9 (Иерархия и Мосты) | Автор: Сибирский Элемент")

@@ -26,29 +26,39 @@ class BaseAI:
 
 def web_search(query):
     try:
+        # Очищаем запрос от лишних слов
         clean_query = query.replace("расскажи про", "").replace("что такое", "").strip()
-        # КОДИРУЕМ ЗАПРОС (чтобы русские буквы правильно передавались в API)
-        encoded_query = urllib.parse.quote(clean_query)
+        # Правильно кодируем запрос (пробелы и русские буквы)
+        encoded_query = urllib.parse.quote_plus(clean_query)
         
-        search_url = f"https://ru.wikipedia.org/w/api.php?action=query&list=search&srsearch={encoded_query}&utf8=&format=json"
+        # Запрашиваем ТОП-5 результатов
+        search_url = f"https://ru.wikipedia.org/w/api.php?action=query&list=search&srsearch={encoded_query}&utf8=&format=json&srlimit=5"
         headers = {'User-Agent': 'SibirskiyElement/3.9 (test@example.com)'}
         res = requests.get(search_url, headers=headers, timeout=5).json()
         
         if not res['query']['search']:
             return None
             
-        page_title = res['query']['search'][0]['title']
-        encoded_title = urllib.parse.quote(page_title)
+        best_extract = ""
         
-        page_url = f"https://ru.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles={encoded_title}&format=json"
-        page_res = requests.get(page_url, headers=headers, timeout=5).json()
-        pages = page_res['query']['pages']
-        extract = list(pages.values())[0].get('extract', '')
-        
-        if not extract:
-            return f"Нашел статью «{page_title}», но не смог извлечь текст."
+        # Проходимся по всем 5 результатам и ищем самый большой текст (чтобы найти именно статью, а не упоминание)
+        for result in res['query']['search']:
+            page_title = result['title']
+            encoded_title = urllib.parse.quote_plus(page_title)
             
-        return extract[:800] + "..."
+            page_url = f"https://ru.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles={encoded_title}&format=json"
+            page_res = requests.get(page_url, headers=headers, timeout=5).json()
+            pages = page_res['query']['pages']
+            extract = list(pages.values())[0].get('extract', '')
+            
+            # Если этот текст больше предыдущего - запоминаем его
+            if len(extract) > len(best_extract):
+                best_extract = extract
+                
+        if not best_extract:
+            return "Нашел статьи, но не смог извлечь текст."
+            
+        return best_extract[:800] + "..."
     except Exception as e:
         print(f"Ошибка поиска: {e}")
         return None
@@ -60,10 +70,9 @@ class LibraryAI:
         if mode == "search":
             search_result = web_search(text)
             if search_result:
-                # ДОБАВЛЯЕМ [AGENT_ID:Цербер], чтобы появились кнопки
                 return f"🌐 **[SEARCH]:**\nЯ нашел информацию в Википедии:\n\n{search_result}\n\n[AGENT_ID:Цербер]"
             else:
-                return "🌐 **[SEARCH]:** Не удалось найти точный ответ. Попробуйте написать короче (например, просто 'Наполеон').\n\n[AGENT_ID:Цербер]"
+                return "🌐 **[SEARCH]:** Не удалось найти точный ответ. Попробуйте написать короче (например, 'Наполеон Бонапарт').\n\n[AGENT_ID:Цербер]"
 
         length_type = "Средний"
         if any(w in text_low for w in ["коротко", "кратко"]): length_type = "Короткий"

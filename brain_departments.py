@@ -15,25 +15,25 @@ def medical_dept(text):
     for k, v in DEFAULT_MED.items():
         if k in text_low:
             MED_ASKL.knowledge += 1
-            MED_ASKL.accuracy = min(100.0, 50.0 + (MED_ASKL.knowledge * 2.5))
+            MED_ASKL.accuracy = min(100.0, 50.0 + (MED_ASKL.knowledge * 0.25))
             brain_models.save_agents()
-            return f"💊 [МЕДИЦИНА] {v}\n⚠️ К врачу! (Асклепий: {MED_ASKL.accuracy:.0f}%)"
+            return f"💊 [МЕДИЦИНА] {v}\n⚠️ К врачу! (Асклепий: {MED_ASKL.accuracy:.1f}%)"
     return None
 
 def finance_dept(text):
     for k, v in DEFAULT_FIN.items():
         if k in text.lower():
             FIN_MORGAN.knowledge += 1
-            FIN_MORGAN.accuracy = min(100.0, 50.0 + (FIN_MORGAN.knowledge * 2.5))
+            FIN_MORGAN.accuracy = min(100.0, 50.0 + (FIN_MORGAN.knowledge * 0.25))
             brain_models.save_agents()
-            return f"📈 [ФИНАНСЫ] {v} (Морган: {FIN_MORGAN.accuracy:.0f}%)"
+            return f"📈 [ФИНАНСЫ] {v} (Морган: {FIN_MORGAN.accuracy:.1f}%)"
     return None
 
 def dict_dept(text):
     clean = text.lower().replace("что такое", "").replace("?", "").strip()
     if clean in DEFAULT_DICT:
         DICT_DAL.knowledge += 1
-        DICT_DAL.accuracy = min(100.0, 50.0 + (DICT_DAL.knowledge * 2.5))
+        DICT_DAL.accuracy = min(100.0, 50.0 + (DICT_DAL.knowledge * 0.25))
         brain_models.save_agents()
-        return f"📖 [СЛОВАРЬ] {clean.capitalize()} — это {DEFAULT_DICT[clean]} (Даль: {DICT_DAL.accuracy:.0f}%)"
+        return f"📖 [СЛОВАРЬ] {clean.capitalize()} — это {DEFAULT_DICT[clean]} (Даль: {DICT_DAL.accuracy:.1f}%)"
     return None

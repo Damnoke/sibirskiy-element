@@ -1,14 +1,15 @@
 import streamlit as st
 import brain_models
 import importlib
+import PyPDF2
 from brain_core import MasterAI
 from meta_agent import MetaArchitect
 
 st.set_page_config(page_title="Сибирский Элемент v3.9.2", page_icon="🏢", layout="wide")
 
-if "ai_brain" not in st.session_state or st.session_state.get("version") != "3.9.1":
+if "ai_brain" not in st.session_state or st.session_state.get("version") != "3.9.2":
     st.session_state.ai_brain = MasterAI()
-    st.session_state.version = "3.9.1"
+    st.session_state.version = "3.9.2"
 
 if "messages" not in st.session_state: st.session_state.messages = []
 if "current_proposal" not in st.session_state: st.session_state.current_proposal = None
@@ -32,15 +33,35 @@ with st.sidebar:
 
     agent_names = [a.name for a in brain_models.ALL_AGENTS]
     selected_agent = st.selectbox("Выберите агента:", agent_names)
-    text_input = st.text_area("Вставьте текст:", height=100)
     
-    if st.button("📖 Прочитать и выучить"):
-        if text_input.strip():
-            agent = next(a for a in brain_models.ALL_AGENTS if a.name == selected_agent)
-            result = agent.read_book(text_input)
-            st.session_state.learn_msg = result 
-            st.rerun() 
-        else: st.warning("Вставьте текст!")
+    tab1, tab2 = st.tabs(["📝 Текст", "📎 Файл (PDF/TXT)"])
+    
+    with tab1:
+        text_input = st.text_area("Вставьте текст:", height=100)
+        if st.button("Прочитать текст"):
+            if text_input.strip():
+                agent = next(a for a in brain_models.ALL_AGENTS if a.name == selected_agent)
+                st.session_state.learn_msg = agent.read_book(text_input)
+                st.rerun()
+                
+    with tab2:
+        uploaded_file = st.file_uploader("Загрузите PDF или TXT", type=["pdf", "txt"])
+        if uploaded_file is not None:
+            if st.button("Прочитать файл"):
+                file_text = ""
+                if uploaded_file.type == "application/pdf":
+                    pdf_reader = PyPDF2.PdfReader(uploaded_file)
+                    for page in pdf_reader.pages:
+                        file_text += page.extract_text() + " "
+                else:
+                    file_text = uploaded_file.read().decode("utf-8")
+                    
+                if file_text:
+                    agent = next(a for a in brain_models.ALL_AGENTS if a.name == selected_agent)
+                    st.session_state.learn_msg = agent.read_book(file_text)
+                    st.rerun()
+                else:
+                    st.error("Не удалось прочитать файл.")
             
     st.divider()
     st.subheader("🗣️ Голос Агентов")
@@ -65,17 +86,15 @@ with st.sidebar:
                 st.success(msg)
                 st.session_state.current_proposal = None
                 st.rerun() 
-            else: st.error(msg)
 
 st.title("🏢 Сибирский Элемент v3.9.2")
-st.markdown("SQLite база данных + Режимы (Chat, Search, SibThink)")
+st.markdown("SibThink Pro: Глубокий анализ, заглавные буквы и умный Критик!")
 
 for i, msg in enumerate(st.session_state.messages):
     with st.chat_message(msg["role"], avatar=msg.get("avatar")):
         content = msg["content"]
         
         if msg["role"] == "assistant" and "[AGENT_ID:" in content:
-            # Безопасный сплит
             parts = content.split("\n\n[AGENT_ID:")
             text_part = parts[0]
             agent_name = parts[1].replace("]", "") if len(parts) > 1 else "Неизвестный"
@@ -102,16 +121,19 @@ for i, msg in enumerate(st.session_state.messages):
         else:
             st.markdown(content)
 
-# КНОПКИ РЕЖИМОВ
 st.markdown("---")
 mode_selection = st.radio(
-    "Режим:",
-    ["🚀 Chat", "🌐 Search", "🧠 SibThink"], 
-    horizontal=True,
+    "Режим:", 
+    ["🚀 Chat", "🌐 Search", "🔍🧠 Search+Think", "🧠 SibThink"], 
+    horizontal=True, 
     label_visibility="collapsed"
 )
-
-mode_map = {"🚀 Chat": "normal", "🌐 Search": "search", "🧠 SibThink": "sibthink"}
+mode_map = {
+    "🚀 Chat": "normal", 
+    "🌐 Search": "search", 
+    "🔍🧠 Search+Think": "search_think", 
+    "🧠 SibThink": "sibthink"
+}
 current_mode = mode_map[mode_selection]
 
 if prompt := st.chat_input("Напишите ваш вопрос..."):
@@ -128,4 +150,4 @@ if prompt := st.chat_input("Напишите ваш вопрос..."):
     st.session_state.messages.append({"role": "assistant", "content": response, "avatar": "🤖"})
     st.rerun()
 
-st.caption("Текущая сборка: v3.9.2 (SQLite + Режимы) | Автор: Сибирский Элемент")
+st.caption("Текущая сборка: v3.9.2 (SibThink Pro) | Автор: Сибирский Элемент")

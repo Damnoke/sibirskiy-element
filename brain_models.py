@@ -56,7 +56,6 @@ class Agent:
             self.knowledge += knowledge_gain
             self.accuracy = min(100.0, 50.0 + (self.knowledge * 0.25))
             
-            # Межотраслевой мост и обучение своих
             if self.get_level() == "Большой (Large) 🦅":
                 self.teach_others()
 
@@ -69,11 +68,9 @@ class Agent:
         bridge_topics = {"Финансы": ["Медицина"], "Медицина": ["Финансы", "Безопасность"]}
         for agent in ALL_AGENTS:
             if agent.name == self.name: continue 
-            # Учим своих (Малых)
             if agent.category == self.category and agent.get_level() == "Малый (Small) 🐣":
                 agent.knowledge += 1
                 agent.accuracy = min(100.0, 50.0 + (agent.knowledge * 0.25))
-            # Учим смежников (по мосту)
             elif self.category in bridge_topics:
                 if agent.category in bridge_topics[self.category] and agent.get_level() != "Большой (Large) 🦅":
                     agent.knowledge += 1 
@@ -96,7 +93,7 @@ class Agent:
                 result.append(next_word)
                 current_word = next_word
             else: break
-        return " ".join(result).replace(" .", ".").replace(" ,", ",").capitalize()
+        return " ".join(result).replace(" .", ".").replace(" ,", ",")
 
     def generate_text(self, start_word, length_type="Средний"):
         if start_word not in self.vocabulary:
@@ -119,7 +116,11 @@ class Agent:
                 best_score = score
                 best_draft = draft
 
+        # ПРОФЕССИОНАЛЬНАЯ ЧИСТКА ТЕКСТА (Стилист)
         if not best_draft.endswith("."): best_draft += "."
+        # Делаем заглавные буквы после точек
+        best_draft = re.sub(r'\.\s*([а-яё])', lambda m: '. ' + m.group(1).upper(), best_draft)
+        
         return f"📝 [{self.name} ({self.get_level()})]:\n{best_draft}"
 
     def to_dict(self):
@@ -144,10 +145,7 @@ def load_agents():
     conn.close()
     
     if not rows:
-        agents = [
-            Agent("Асклепий", "Медицина"), Agent("Гиппократ", "Медицина"), 
-            Agent("Морган", "Финансы"), Agent("Даль", "Словарь"), Agent("Цербер", "Безопасность")
-        ]
+        agents = [Agent("Асклепий", "Медицина"), Agent("Гиппократ", "Медицина"), Agent("Морган", "Финансы"), Agent("Даль", "Словарь"), Agent("Цербер", "Безопасность")]
         save_agents(agents)
         return agents
         
@@ -169,8 +167,7 @@ def save_agents(agents_list=None):
     for a in agents_list:
         vocab_str = json.dumps(list(a.vocabulary), ensure_ascii=False)
         chain_str = json.dumps(a.chain, ensure_ascii=False)
-        c.execute('''INSERT OR REPLACE INTO agents (name, category, accuracy, knowledge, vocabulary, chain)
-                     VALUES (?, ?, ?, ?, ?, ?)''', (a.name, a.category, a.accuracy, a.knowledge, vocab_str, chain_str))
+        c.execute('''INSERT OR REPLACE INTO agents (name, category, accuracy, knowledge, vocabulary, chain) VALUES (?, ?, ?, ?, ?, ?)''', (a.name, a.category, a.accuracy, a.knowledge, vocab_str, chain_str))
     conn.commit()
     conn.close()
 

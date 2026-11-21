@@ -11,69 +11,49 @@ class BaseAI:
     def ask(self, text):
         text_low = text.lower()
         if re.search(r"DROP\s+TABLE|<script>", text_low):
-            brain_models.SEC_CERBER.knowledge += 1
-            brain_models.SEC_CERBER.accuracy = min(100.0, 50.0 + (brain_models.SEC_CERBER.knowledge * 0.25))
-            brain_models.save_agents()
             return "🚨 [КИБЕР-ЩИТ]: Атака отбита."
-            
-        if any(w in text_low for w in ["что такое", "значение"]): 
-            return dict_dept(text)
-        elif any(w in text_low for w in ["марж", "выручк"]): 
-            return finance_dept(text)
-        elif any(w in text_low for w in ["бол", "голов", "таблет"]): 
-            return medical_dept(text)
+        if any(w in text_low for w in ["что такое", "значение"]): return dict_dept(text)
+        elif any(w in text_low for w in ["марж", "выручк"]): return finance_dept(text)
+        elif any(w in text_low for w in ["бол", "голов", "таблет"]): return medical_dept(text)
         return None 
 
 def web_search(query):
     try:
-        # Очищаем запрос от лишних слов
         clean_query = query.replace("расскажи про", "").replace("что такое", "").strip()
-        # Правильно кодируем запрос (пробелы и русские буквы)
         encoded_query = urllib.parse.quote_plus(clean_query)
-        
-        # Запрашиваем ТОП-5 результатов
-        search_url = f"https://ru.wikipedia.org/w/api.php?action=query&list=search&srsearch={encoded_query}&utf8=&format=json&srlimit=5"
-        headers = {'User-Agent': 'SibirskiyElement/3.9 (test@example.com)'}
-        res = requests.get(search_url, headers=headers, timeout=5).json()
-        
-        if not res['query']['search']:
-            return None
-            
-        best_extract = ""
-        
-        # Проходимся по всем 5 результатам и ищем самый большой текст (чтобы найти именно статью, а не упоминание)
-        for result in res['query']['search']:
-            page_title = result['title']
-            encoded_title = urllib.parse.quote_plus(page_title)
-            
-            page_url = f"https://ru.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles={encoded_title}&format=json"
-            page_res = requests.get(page_url, headers=headers, timeout=5).json()
-            pages = page_res['query']['pages']
-            extract = list(pages.values())[0].get('extract', '')
-            
-            # Если этот текст больше предыдущего - запоминаем его
-            if len(extract) > len(best_extract):
-                best_extract = extract
-                
-        if not best_extract:
-            return "Нашел статьи, но не смог извлечь текст."
-            
-        return best_extract[:800] + "..."
-    except Exception as e:
-        print(f"Ошибка поиска: {e}")
+        search_url = f"https://ru.wikipedia.org/w/api.php?action=query&list=search&srsearch={encoded_query}&utf8=&format=json&srlimit=3"
+        res = requests.get(search_url, headers={'User-Agent': 'SibirskiyElement/3.9'}, timeout=5).json()
+        if not res['query']['search']: return None
+        page_title = res['query']['search'][0]['title']
+        page_url = f"https://ru.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles={urllib.parse.quote_plus(page_title)}&format=json"
+        page_res = requests.get(page_url, headers={'User-Agent': 'SibirskiyElement/3.9'}, timeout=5).json()
+        extract = list(page_res['query']['pages'].values())[0].get('extract', '')
+        if not extract: return None
+        return f"Согласно статье «{page_title}»:\n\n{extract[:4000]}..."
+    except Exception:
         return None
 
 class LibraryAI:
     def ask(self, text, mode="normal"):
         text_low = text.lower()
         
-        if mode == "search":
+        if mode in ["search", "search_think"]:
             search_result = web_search(text)
             if search_result:
-                return f"🌐 **[SEARCH]:**\nЯ нашел информацию в Википедии:\n\n{search_result}\n\n[AGENT_ID:Цербер]"
-            else:
-                return "🌐 **[SEARCH]:** Не удалось найти точный ответ. Попробуйте написать короче (например, 'Наполеон Бонапарт').\n\n[AGENT_ID:Цербер]"
+                # УМНЫЙ КРИТИК: Ищем много опасных слов
+                danger_words = ["беремен", "дет", "противопоказан", "побочн", "аллерг", "осторожн"]
+                found_dangers = [w for w in danger_words if w in search_result.lower()]
+                
+                critique = ""
+                if found_dangers:
+                    critique = f"\n\n🚨 **[КРИТИК | Асклепий]:** Внимание! Найдены важные медицинские предупреждения (упоминаются: {', '.join(found_dangers)}). Обязательно прочитайте раздел 'Противопоказания'!"
+                
+                if mode == "search_think":
+                    return f"🔍🧠 **[SEARCH + SIBTHINK]:**\n{search_result}{critique}\n\n[AGENT_ID:Цербер]"
+                return f"🔍 **[SEARCH]:**\n{search_result}\n\n[AGENT_ID:Цербер]"
+            return "🌐 **[SEARCH]:** Не найдено.\n\n[AGENT_ID:Цербер]"
 
+        # РЕЖИМ CHAT И SIBTHINK (Генерация)
         length_type = "Средний"
         if any(w in text_low for w in ["коротко", "кратко"]): length_type = "Короткий"
         elif any(w in text_low for w in ["подробно", "длинно"]): length_type = "Длинный"
@@ -88,31 +68,27 @@ class LibraryAI:
                     root = w[:4]
                     for vocab_word in agent.vocabulary:
                         if root in vocab_word:
-                            
                             draft = agent.generate_text(vocab_word, length_type=length_type)
                             
                             critique = ""
                             if agent.name != "Асклепий" and "язв" in draft.lower():
-                                critique = "\n\n🚨 **[КРИТИК | Асклепий]:** Внимание! В тексте упомянута язва. Требуется проверка врачом."
+                                critique = "\n\n🚨 **[КРИТИК | Асклепий]:** Внимание! Упомянута язва. Ибупрофен может быть противопоказан!"
                             
-                            stylist_report = ""
-                            dal = next((a for a in brain_models.ALL_AGENTS if a.name == "Даль"), None)
-                            if dal:
-                                polished_draft = draft.replace("  ", " ").replace(" ,", ",").replace(" .", ".").strip()
-                                if not polished_draft.endswith("."): polished_draft += "."
-                                stylist_report = "\n\n📖 **[СТИЛИСТ | Даль]:** Текст вычитан."
-                                final_text = polished_draft
+                            stylist = "\n\n📖 **[СТИЛИСТ | Даль]:** Текст вычитан."
+                            
+                            # ПРОФЕССИОНАЛЬНЫЙ SIBTHINK
+                            if mode == "sibthink":
+                                header = "🧠 **[SIBTHINK (Глубокий анализ)]**\n"
+                                structured_text = f"📌 **Что я знаю по этому вопросу:**\n{draft}"
+                                return header + structured_text + critique + stylist + f"\n\n[AGENT_ID:{agent.name}]"
                             else:
-                                final_text = draft
-
-                            header = "🧠 **[SIBTHINK]:**\n" if mode == "sibthink" else "🚀 **[CHAT]:**\n"
-
-                            return header + final_text + critique + stylist_report + f"\n\n[AGENT_ID:{agent.name}]"
+                                header = "🚀 **[CHAT]:**\n"
+                                return header + draft + critique + stylist + f"\n\n[AGENT_ID:{agent.name}]"
         return None
 
 class ProAI:
     def ask(self, text):
-        return f"💬 [PRO-ВЕРСИЯ] Запрос «{text}» сложен. Загрузите текст в 'Библиотеку' или включите 'Search'.\n\n[AGENT_ID:Цербер]"
+        return f"💬 [PRO] Запрос «{text}» сложен. Загрузите файл или включите 'Search'.\n\n[AGENT_ID:Цербер]"
 
 class MasterAI:
     def __init__(self):
@@ -123,9 +99,7 @@ class MasterAI:
     def ask(self, user_text, mode="normal", **kwargs):
         response = self.base.ask(user_text)
         if response: return response
-        
         lib_response = self.library.ask(user_text, mode=mode)
         if lib_response: return lib_response
-        
         time.sleep(1) 
         return self.pro.ask(user_text)

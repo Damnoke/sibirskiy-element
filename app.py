@@ -4,7 +4,7 @@ import importlib
 from brain_core import MasterAI
 from meta_agent import MetaArchitect
 
-st.set_page_config(page_title="Сибирский Элемент v3.9.1", page_icon="🏢", layout="wide")
+st.set_page_config(page_title="Сибирский Элемент v3.9.2", page_icon="🏢", layout="wide")
 
 if "ai_brain" not in st.session_state or st.session_state.get("version") != "3.9.1":
     st.session_state.ai_brain = MasterAI()
@@ -67,7 +67,7 @@ with st.sidebar:
                 st.rerun() 
             else: st.error(msg)
 
-st.title("🏢 Сибирский Элемент v3.9.1")
+st.title("🏢 Сибирский Элемент v3.9.2")
 st.markdown("SQLite база данных + Режимы (Chat, Search, SibThink)")
 
 for i, msg in enumerate(st.session_state.messages):
@@ -128,4 +128,4 @@ if prompt := st.chat_input("Напишите ваш вопрос..."):
     st.session_state.messages.append({"role": "assistant", "content": response, "avatar": "🤖"})
     st.rerun()
 
-st.caption("Текущая сборка: v3.9.1 (SQLite + Режимы) | Автор: Сибирский Элемент")
+st.caption("Текущая сборка: v3.9.2 (SQLite + Режимы) | Автор: Сибирский Элемент")

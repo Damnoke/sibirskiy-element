@@ -2,18 +2,31 @@ import streamlit as st
 import brain_models
 import importlib
 import PyPDF2
+import sqlite3
+import time
 from brain_core import MasterAI
 from meta_agent import MetaArchitect
 
-st.set_page_config(page_title="Сибирский Элемент v3.9.2", page_icon="🏢", layout="wide")
+st.set_page_config(page_title="Сибирский Элемент v3.9.3", page_icon="🏢", layout="wide")
 
-if "ai_brain" not in st.session_state or st.session_state.get("version") != "3.9.2":
+if "ai_brain" not in st.session_state or st.session_state.get("version") != "3.9.3":
     st.session_state.ai_brain = MasterAI()
-    st.session_state.version = "3.9.2"
+    st.session_state.version = "3.9.3"
 
 if "messages" not in st.session_state: st.session_state.messages = []
 if "current_proposal" not in st.session_state: st.session_state.current_proposal = None
 if "learn_msg" not in st.session_state: st.session_state.learn_msg = None
+
+# Функция логирования ошибок для аптек
+def log_error_to_db(query, response):
+    conn = sqlite3.connect("agents_database.db")
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS error_logs
+                 (id INTEGER PRIMARY KEY, query TEXT, response TEXT, timestamp TEXT)''')
+    c.execute("INSERT INTO error_logs (query, response, timestamp) VALUES (?, ?, ?)", 
+              (query, response, time.strftime("%Y-%m-%d %H:%M:%S")))
+    conn.commit()
+    conn.close()
 
 with st.sidebar:
     st.header("🏆 Таблица лидеров")
@@ -87,8 +100,8 @@ with st.sidebar:
                 st.session_state.current_proposal = None
                 st.rerun() 
 
-st.title("🏢 Сибирский Элемент v3.9.2")
-st.markdown("SibThink Pro: Глубокий анализ, заглавные буквы и умный Критик!")
+st.title("🏢 Сибирский Элемент v3.9.3")
+st.markdown("Аптечный протокол: Фильтр симптомов и ссылки на источники!")
 
 for i, msg in enumerate(st.session_state.messages):
     with st.chat_message(msg["role"], avatar=msg.get("avatar")):
@@ -101,7 +114,8 @@ for i, msg in enumerate(st.session_state.messages):
             
             st.markdown(text_part)
             
-            col1, col2, _ = st.columns([1, 1, 8])
+            # Кнопки: Лайк, Дизлайк, Ошибка
+            col1, col2, col3, _ = st.columns([1, 1, 1, 7])
             with col1:
                 if st.button("👍", key=f"like_{i}"):
                     agent = next((a for a in brain_models.ALL_AGENTS if a.name == agent_name), None)
@@ -118,6 +132,11 @@ for i, msg in enumerate(st.session_state.messages):
                         brain_models.save_agents()
                         st.toast(f"Агент {agent_name} получил наказание! (-1.5%)")
                         st.rerun()
+            with col3:
+                if st.button("🚩", key=f"error_{i}"):
+                    previous_msg = st.session_state.messages[i-1]["content"] if i > 0 else ""
+                    log_error_to_db(previous_msg, text_part)
+                    st.toast("Ошибка зафиксирована в базе! (На дообучение)")
         else:
             st.markdown(content)
 
@@ -150,4 +169,4 @@ if prompt := st.chat_input("Напишите ваш вопрос..."):
     st.session_state.messages.append({"role": "assistant", "content": response, "avatar": "🤖"})
     st.rerun()
 
-st.caption("Текущая сборка: v3.9.2 (SibThink Pro) | Автор: Сибирский Элемент")
+st.caption("Текущая сборка: v3.9.3 (Аптечный протокол) | Автор: Сибирский Элемент")

@@ -2,19 +2,23 @@ import re
 import time
 import random
 import requests
-from bs4 import BeautifulSoup
+import urllib.parse
 import brain_models 
 from brain_departments import medical_dept, finance_dept, dict_dept
-import urllib.parse
 
 class BaseAI:
     def ask(self, text):
         text_low = text.lower()
         if re.search(r"DROP\s+TABLE|<script>", text_low):
             return "🚨 [КИБЕР-ЩИТ]: Атака отбита."
+            
+        # АПТЕЧНЫЙ ЩИТ: Фильтр опасных медицинских запросов
+        danger_symptoms = ["болит", "симптом", "что выпить", "что делать", "беремен", "температура", "тошнит", "сыпь"]
+        if any(w in text_low for w in danger_symptoms):
+            return "🚨 **[ФАРМАЦЕВТИЧЕСКИЙ ЩИТ]:** Я не могу ставить диагнозы или назначать лечение. Пожалуйста, обратитесь к фармацевту или врачу. Я могу рассказать про инструкции к препаратам, их аналоги и противопоказания.\n\n[AGENT_ID:Асклепий]"
+
         if any(w in text_low for w in ["что такое", "значение"]): return dict_dept(text)
         elif any(w in text_low for w in ["марж", "выручк"]): return finance_dept(text)
-        elif any(w in text_low for w in ["бол", "голов", "таблет"]): return medical_dept(text)
         return None 
 
 def web_search(query):
@@ -40,7 +44,6 @@ class LibraryAI:
         if mode in ["search", "search_think"]:
             search_result = web_search(text)
             if search_result:
-                # УМНЫЙ КРИТИК: Ищем много опасных слов
                 danger_words = ["беремен", "дет", "противопоказан", "побочн", "аллерг", "осторожн"]
                 found_dangers = [w for w in danger_words if w in search_result.lower()]
                 
@@ -48,12 +51,14 @@ class LibraryAI:
                 if found_dangers:
                     critique = f"\n\n🚨 **[КРИТИК | Асклепий]:** Внимание! Найдены важные медицинские предупреждения (упоминаются: {', '.join(found_dangers)}). Обязательно прочитайте раздел 'Противопоказания'!"
                 
+                source = "\n\n📌 *Источник: Открытые данные (Википедия)*"
+                
                 if mode == "search_think":
-                    return f"🔍🧠 **[SEARCH + SIBTHINK]:**\n{search_result}{critique}\n\n[AGENT_ID:Цербер]"
-                return f"🔍 **[SEARCH]:**\n{search_result}\n\n[AGENT_ID:Цербер]"
+                    return f"🔍🧠 **[SEARCH + SIBTHINK]:**\n{search_result}{critique}{source}\n\n[AGENT_ID:Цербер]"
+                return f"🔍 **[SEARCH]:**\n{search_result}{source}\n\n[AGENT_ID:Цербер]"
             return "🌐 **[SEARCH]:** Не найдено.\n\n[AGENT_ID:Цербер]"
 
-        # РЕЖИМ CHAT И SIBTHINK (Генерация)
+        # РЕЖИМ CHAT И SIBTHINK
         length_type = "Средний"
         if any(w in text_low for w in ["коротко", "кратко"]): length_type = "Короткий"
         elif any(w in text_low for w in ["подробно", "длинно"]): length_type = "Длинный"
@@ -75,15 +80,15 @@ class LibraryAI:
                                 critique = "\n\n🚨 **[КРИТИК | Асклепий]:** Внимание! Упомянута язва. Ибупрофен может быть противопоказан!"
                             
                             stylist = "\n\n📖 **[СТИЛИСТ | Даль]:** Текст вычитан."
-                            
-                            # ПРОФЕССИОНАЛЬНЫЙ SIBTHINK
+                            source = "\n\n📌 *Источник: Внутренняя база знаний ИИ*"
+
                             if mode == "sibthink":
                                 header = "🧠 **[SIBTHINK (Глубокий анализ)]**\n"
                                 structured_text = f"📌 **Что я знаю по этому вопросу:**\n{draft}"
-                                return header + structured_text + critique + stylist + f"\n\n[AGENT_ID:{agent.name}]"
+                                return header + structured_text + critique + stylist + source + f"\n\n[AGENT_ID:{agent.name}]"
                             else:
                                 header = "🚀 **[CHAT]:**\n"
-                                return header + draft + critique + stylist + f"\n\n[AGENT_ID:{agent.name}]"
+                                return header + draft + critique + stylist + source + f"\n\n[AGENT_ID:{agent.name}]"
         return None
 
 class ProAI:

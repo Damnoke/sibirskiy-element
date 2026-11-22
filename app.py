@@ -150,7 +150,7 @@ mode_selection = st.radio(
 mode_map = {
     "🚀 Chat": "normal", 
     "🌐 Search": "search", 
-    "🔍🧠 Search+Think": "search_think", 
+    "🔍🧠 Search+Think": "search_Sibthink", 
     "🧠 SibThink": "sibthink"
 }
 current_mode = mode_map[mode_selection]

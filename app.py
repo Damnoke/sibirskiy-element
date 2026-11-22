@@ -17,7 +17,6 @@ if "messages" not in st.session_state: st.session_state.messages = []
 if "current_proposal" not in st.session_state: st.session_state.current_proposal = None
 if "learn_msg" not in st.session_state: st.session_state.learn_msg = None
 
-# Функция логирования ошибок для аптек
 def log_error_to_db(query, response):
     conn = sqlite3.connect("agents_database.db")
     c = conn.cursor()
@@ -114,7 +113,6 @@ for i, msg in enumerate(st.session_state.messages):
             
             st.markdown(text_part)
             
-            # Кнопки: Лайк, Дизлайк, Ошибка
             col1, col2, col3, _ = st.columns([1, 1, 1, 7])
             with col1:
                 if st.button("👍", key=f"like_{i}"):
@@ -150,10 +148,11 @@ mode_selection = st.radio(
 mode_map = {
     "🚀 Chat": "normal", 
     "🌐 Search": "search", 
-    "🔍🧠 Search+SibThink": "search_Sibthink", 
+    "🔍🧠 Search+Think": "search_think", 
     "🧠 SibThink": "sibthink"
 }
-current_mode = mode_map[mode_selection]
+# ФИКС ОШИБКИ: используем безопасный метод .get()
+current_mode = mode_map.get(mode_selection, "normal")
 
 if prompt := st.chat_input("Напишите ваш вопрос..."):
     with st.chat_message("user"): 

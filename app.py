@@ -7,11 +7,11 @@ import time
 from brain_core import MasterAI
 from meta_agent import MetaArchitect
 
-st.set_page_config(page_title="Сибирский Элемент v3.9.3", page_icon="🏢", layout="wide")
+st.set_page_config(page_title="Сибирский Элемент v4.0", page_icon="🏢", layout="wide")
 
-if "ai_brain" not in st.session_state or st.session_state.get("version") != "3.9.3":
+if "ai_brain" not in st.session_state or st.session_state.get("version") != "4.0":
     st.session_state.ai_brain = MasterAI()
-    st.session_state.version = "3.9.3"
+    st.session_state.version = "4.0"
 
 if "messages" not in st.session_state: st.session_state.messages = []
 if "current_proposal" not in st.session_state: st.session_state.current_proposal = None
@@ -37,7 +37,7 @@ with st.sidebar:
         st.caption(f"Точность: {agent.accuracy:.1f}% | Знаний: {agent.knowledge}")
     
     st.divider()
-    st.subheader("📚 Библиотека")
+    st.subheader("📚 Библиотека (Обучение)")
     
     if st.session_state.learn_msg:
         st.success(st.session_state.learn_msg)
@@ -99,8 +99,8 @@ with st.sidebar:
                 st.session_state.current_proposal = None
                 st.rerun() 
 
-st.title("🏢 Сибирский Элемент v3.9.3")
-st.markdown("Аптечный протокол: Фильтр симптомов и ссылки на источники!")
+st.title("🏢 Сибирский Элемент v4.0")
+st.markdown("Флагман: Железный занавес + Умная выжимка фактов + Загрузка файлов!")
 
 for i, msg in enumerate(st.session_state.messages):
     with st.chat_message(msg["role"], avatar=msg.get("avatar")):
@@ -151,7 +151,6 @@ mode_map = {
     "🔍🧠 Search+Think": "search_think", 
     "🧠 SibThink": "sibthink"
 }
-# ФИКС ОШИБКИ: используем безопасный метод .get()
 current_mode = mode_map.get(mode_selection, "normal")
 
 if prompt := st.chat_input("Напишите ваш вопрос..."):
@@ -168,4 +167,4 @@ if prompt := st.chat_input("Напишите ваш вопрос..."):
     st.session_state.messages.append({"role": "assistant", "content": response, "avatar": "🤖"})
     st.rerun()
 
-st.caption("Текущая сборка: v3.9.3 (Аптечный протокол) | Автор: Сибирский Элемент")
+st.caption("Текущая сборка: v4.0 (Флагман) | Автор: Сибирский Элемент")

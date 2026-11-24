@@ -4,6 +4,7 @@ import hashlib
 import random
 import re
 import sqlite3
+import csv
 
 class Agent:
     def __init__(self, name, category="Общее", accuracy=50.0, knowledge=0):
@@ -116,9 +117,7 @@ class Agent:
                 best_score = score
                 best_draft = draft
 
-        # ПРОФЕССИОНАЛЬНАЯ ЧИСТКА ТЕКСТА (Стилист)
         if not best_draft.endswith("."): best_draft += "."
-        # Делаем заглавные буквы после точек
         best_draft = re.sub(r'\.\s*([а-яё])', lambda m: '. ' + m.group(1).upper(), best_draft)
         
         return f"📝 [{self.name} ({self.get_level()})]:\n{best_draft}"
@@ -133,8 +132,60 @@ def init_db():
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS agents
                  (name TEXT PRIMARY KEY, category TEXT, accuracy REAL, knowledge INTEGER, vocabulary TEXT, chain TEXT)''')
+    # НОВАЯ ТАБЛИЦА РЕЕСТРА
+    c.execute('''CREATE TABLE IF NOT EXISTS medicines
+                 (name TEXT PRIMARY KEY, is_prescription INTEGER, forms TEXT, analogs TEXT, dosage TEXT, description TEXT, indications TEXT)''')
     conn.commit()
     conn.close()
+
+def load_medicines_from_csv():
+    init_db()
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    
+    c.execute("SELECT COUNT(*) FROM medicines")
+    count = c.fetchone()[0]
+    
+    if count == 0:
+        if os.path.exists("medicines.csv"):
+            try:
+                with open("medicines.csv", "r", encoding="utf-8") as f:
+                    reader = csv.DictReader(f)
+                    for row in reader:
+                        c.execute('''INSERT OR REPLACE INTO medicines (name, is_prescription, forms, analogs, dosage, description, indications) 
+                                     VALUES (?, ?, ?, ?, ?, ?, ?)''', 
+                                  (row["name"], int(row["is_prescription"]), row["forms"], row["analogs"], row["dosage"], row["description"], row.get("indications", "")))
+                conn.commit()
+                print("CSV успешно загружен в базу!")
+            except Exception as e:
+                print(f"Ошибка чтения CSV: {e}")
+        else:
+            print("Файл medicines.csv не найден. Используются стандартные данные.")
+            
+    conn.close()
+
+def load_medicines():
+    load_medicines_from_csv()
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("SELECT name, is_prescription, forms, analogs, dosage, description, indications FROM medicines")
+    rows = c.fetchall()
+    conn.close()
+    
+    meds_dict = {}
+    for row in rows:
+        meds_dict[row[0].lower()] = {
+            "name": row[0],
+            "is_prescription": bool(row[1]),
+            "forms": row[2],
+            "analogs": row[3],
+            "dosage": row[4],
+            "description": row[5],
+            "indications": row[6]
+        }
+    return meds_dict
+
+MEDICINES_REGISTRY = load_medicines()
 
 def load_agents():
     init_db()

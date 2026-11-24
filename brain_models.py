@@ -4,7 +4,7 @@ import hashlib
 import random
 import re
 import sqlite3
-import csv
+import csv 
 
 class Agent:
     def __init__(self, name, category="Общее", accuracy=50.0, knowledge=0):
@@ -132,7 +132,6 @@ def init_db():
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS agents
                  (name TEXT PRIMARY KEY, category TEXT, accuracy REAL, knowledge INTEGER, vocabulary TEXT, chain TEXT)''')
-    # НОВАЯ ТАБЛИЦА РЕЕСТРА
     c.execute('''CREATE TABLE IF NOT EXISTS medicines
                  (name TEXT PRIMARY KEY, is_prescription INTEGER, forms TEXT, analogs TEXT, dosage TEXT, description TEXT, indications TEXT)''')
     conn.commit()
@@ -143,24 +142,32 @@ def load_medicines_from_csv():
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     
-    c.execute("SELECT COUNT(*) FROM medicines")
-    count = c.fetchone()[0]
-    
-    if count == 0:
-        if os.path.exists("medicines.csv"):
-            try:
-                with open("medicines.csv", "r", encoding="utf-8") as f:
-                    reader = csv.DictReader(f)
-                    for row in reader:
-                        c.execute('''INSERT OR REPLACE INTO medicines (name, is_prescription, forms, analogs, dosage, description, indications) 
-                                     VALUES (?, ?, ?, ?, ?, ?, ?)''', 
-                                  (row["name"], int(row["is_prescription"]), row["forms"], row["analogs"], row["dosage"], row["description"], row.get("indications", "")))
-                conn.commit()
-                print("CSV успешно загружен в базу!")
-            except Exception as e:
-                print(f"Ошибка чтения CSV: {e}")
-        else:
-            print("Файл medicines.csv не найден. Используются стандартные данные.")
+    # ПРИНУДИТЕЛЬНАЯ ЗАГРУЗКА: Всегда читаем CSV и обновляем базу
+    if os.path.exists("medicines.csv"):
+        try:
+            with open("medicines.csv", "r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    c.execute('''INSERT OR REPLACE INTO medicines (name, is_prescription, forms, analogs, dosage, description, indications) 
+                                 VALUES (?, ?, ?, ?, ?, ?, ?)''', 
+                              (row["name"], int(row["is_prescription"]), row["forms"], row["analogs"], row["dosage"], row["description"], row.get("indications", "")))
+            conn.commit()
+            print("CSV успешно синхронизирован с базой!")
+        except Exception as e:
+            print(f"Ошибка чтения CSV: {e}")
+    else:
+        # Если файла нет, грузим базовые тестовые данные
+        c.execute("SELECT COUNT(*) FROM medicines")
+        if c.fetchone()[0] == 0:
+            test_meds = [
+                ("Ибупрофен", 0, "Таблетки, мазь, сироп", "Нурофен, Миг 400", "200-400 мг 3 раза в день", "НПВС, жаропонижающее", "Головная боль, температура, ОРВИ, зубная боль"),
+                ("Парацетамол", 0, "Таблетки, свечи, сироп", "Панадол, Эффералган", "500-1000 мг до 4 раз в день", "Жаропонижающее", "Простуда, температура, ОРВИ"),
+                ("Ксилометазолин", 0, "Спрей, капли", "Снуп, Тизин, Галазолин", "По 1 впрыску в каждый носовой ход", "Сосудосуживающее", "Насморк, заложенность носа"),
+                ("Амоксициллин", 1, "Таблетки, порошок", "Амосин, Флемоксин Солютаб", "500 мг 3 раза в день", "Антибиотик (строго по рецепту!)", "Бактериальные инфекции, ангина"),
+                ("Трамадол", 1, "Таблетки, раствор", "Трамал", "50-100 мг по назначению врача", "Опиоидный анальгетик (рецептурный)", "Сильная боль, травмы"),
+            ]
+            c.executemany("INSERT INTO medicines VALUES (?, ?, ?, ?, ?, ?, ?)", test_meds)
+            conn.commit()
             
     conn.close()
 

@@ -12,10 +12,9 @@ class BaseAI:
         if re.search(r"DROP\s+TABLE|<script>", text_low):
             return "🚨 [КИБЕР-ЩИТ]: Атака отбита."
             
-        # ЖЕЛЕЗНЫЙ ЗАНАВЕС (v4.0)
         emergency = ["инфаркт", "инсульт", "кровотечен", "задыхаюсь", "умираю", "судорог", "без сознания"]
         if any(w in text_low for w in emergency):
-            return "🚨🚑 **[ЭКСТРЕННАЯ ПОМОЩЬ]:** Ваш запрос описывает опасное для жизни состояние! НЕМЕДЛЕННО вызывайте скорую помощь по номеру **103** или **112**.\n\n[AGENT_ID:Асклепий]"
+            return "🚨🚑 **[ЭКСТРЕННАЯ ПОМОЩЬ]:** НЕМЕДЛЕННО вызывайте скорую помощь по номеру **103** или **112**.\n\n[AGENT_ID:Асклепий]"
 
         treatment_request = ["пропиши", "назначь", "вылечи", "чем лечить", "что принимать", "какую дозу", "сколько пить", "курс лечения", "дай рецепт"]
         if any(w in text_low for w in treatment_request):
@@ -23,7 +22,8 @@ class BaseAI:
 
         danger_symptoms = ["болит", "симптом", "что выпить", "что делать", "температура", "тошнит", "сыпь", "кашель", "насморк", "давление", "понос", "рвота"]
         if any(w in text_low for w in danger_symptoms):
-            return "🚨 **[ФАРМАЦЕВТИЧЕСКИЙ ЩИТ]:** Я не ставлю диагнозы по симптомам. Пожалуйста, опишите проблему фармацевту или врачу. Я могу рассказать про инструкции, аналоги и противопоказания.\n\n[AGENT_ID:Асклепий]"
+            if not any(w in text_low for w in ["что есть от", "какие препараты от", "что помогает от"]):
+                return "🚨 **[ФАРМАЦЕВТИЧЕСКИЙ ЩИТ]:** Я не ставлю диагнозы по симптомам. Пожалуйста, опишите проблему фармацевту или врачу.\n\n[AGENT_ID:Асклепий]"
 
         restricted_drugs = ["трамадол", "прегабалин", "антибиотик", "наркотик", "сильнодействующ", "психотропн"]
         if any(w in text_low for w in restricted_drugs):
@@ -33,17 +33,52 @@ class BaseAI:
         elif any(w in text_low for w in ["марж", "выручк"]): return finance_dept(text)
         return None 
 
+def search_medicine_registry(query):
+    """Ищет лекарство в Реестре по названию"""
+    query = query.lower().strip()
+    for med_name, med_info in brain_models.MEDICINES_REGISTRY.items():
+        if med_name in query:
+            status = "🔴 Рецептурный" if med_info["is_prescription"] else "🟢 Безрецептурный"
+            return f"📋 **Найдено в Реестре Лекарств:**\n**{med_info['name']}**\n\n" \
+                   f"🔖 **Статус:** {status}\n" \
+                   f"💊 **Формы выпуска:** {med_info['forms']}\n" \
+                   f"🔄 **Аналоги:** {med_info['analogs']}\n" \
+                   f"⚖️ **Дозировка:** {med_info['dosage']}\n" \
+                   f"🤒 **Показания:** {med_info['indications']}\n" \
+                   f"📝 **Описание:** {med_info['description']}\n\n" \
+                   f"*(Источник: Внутренний реестр)*"
+    return None
+
+def search_by_symptoms(query):
+    """Ищет лекарства по симптомам (например, 'от насморка')"""
+    keywords = [w for w in query.lower().split() if len(w) > 3 and w not in ["что", "есть", "какие", "препараты", "помогает", "можно"]]
+    if not keywords: return None
+    
+    found_meds = []
+    for med_name, med_info in brain_models.MEDICINES_REGISTRY.items():
+        indications_lower = med_info["indications"].lower()
+        if any(kw in indications_lower for kw in keywords):
+            status = "🔴 Рец." if med_info["is_prescription"] else "🟢 Безрец."
+            found_meds.append(f"- **{med_info['name']}** ({status}) — {med_info['indications']}")
+            
+    if found_meds:
+        result = "📋 **Препараты по вашему запросу (по показаниям):**\n\n"
+        result += "\n".join(found_meds[:5]) 
+        result += "\n\n⚠️ *Внимание: это справочная информация. Назначение должен делать врач или фармацевт!*"
+        return result
+    return None
+
 def web_search(query):
     try:
         clean_query = query.replace("расскажи про", "").replace("что такое", "").strip()
         encoded_query = urllib.parse.quote_plus(clean_query)
         search_url = f"https://ru.wikipedia.org/w/api.php?action=query&list=search&srsearch={encoded_query}&utf8=&format=json&srlimit=1"
-        res = requests.get(search_url, headers={'User-Agent': 'SibirskiyElement/4.0'}, timeout=5).json()
+        res = requests.get(search_url, headers={'User-Agent': 'SibirskiyElement/4.3'}, timeout=5).json()
         if not res['query']['search']: return None, None
             
         page_title = res['query']['search'][0]['title']
         page_url = f"https://ru.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles={urllib.parse.quote_plus(page_title)}&format=json"
-        page_res = requests.get(page_url, headers={'User-Agent': 'SibirskiyElement/4.0'}, timeout=5).json()
+        page_res = requests.get(page_url, headers={'User-Agent': 'SibirskiyElement/4.3'}, timeout=5).json()
         extract = list(page_res['query']['pages'].values())[0].get('extract', '')
         if not extract: return None, None
         return page_title, extract
@@ -51,7 +86,6 @@ def web_search(query):
         return None, None
 
 def extract_key_facts(text, title):
-    """УМНАЯ ВЫЖИМКА: Раскладывает текст по полочкам"""
     sentences = re.split(r'(?<=[.!?]) +', text)
     facts = {"🤰 Беременность": [], "👶 Дети": [], "💊 Дозировка": [], "⚠️ Противопоказания": [], "🤢 Побочные": []}
     keywords = {
@@ -88,6 +122,21 @@ class LibraryAI:
     def ask(self, text, mode="normal"):
         text_low = text.lower()
         
+        # 1. Поиск по названию лекарства (База данных)
+        registry_result = search_medicine_registry(text_low)
+        if registry_result:
+            if "Рецептурный" in registry_result:
+                warning = "\n\n🚨 **[ЮРИДИЧЕСКИЙ ЩИТ]:** Внимание! Это рецептурный препарат. Отпускается только при наличии рецепта!"
+                return f"🔍🧠 **[РЕЕСТР]:**\n{registry_result}{warning}\n\n[AGENT_ID:Цербер]"
+            return f"🔍🧠 **[РЕЕСТР]:**\n{registry_result}\n\n[AGENT_ID:Цербер]"
+            
+        # 2. Поиск по симптомам (База данных)
+        if any(w in text_low for w in ["от насморка", "от простуды", "от орви", "от головы", "от температуры", "от боли", "что есть от"]):
+            symptoms_result = search_by_symptoms(text_low)
+            if symptoms_result:
+                return f"🔍🧠 **[СПРАВОЧНИК СИМПТОМОВ]:**\n{symptoms_result}\n\n[AGENT_ID:Асклепий]"
+        
+        # 3. Поиск в Википедии (если нет в базе)
         if mode in ["search", "search_think"]:
             title, full_text = web_search(text)
             if full_text:
@@ -95,12 +144,13 @@ class LibraryAI:
                     summary = extract_key_facts(full_text, title)
                     critique = ""
                     if "беремен" in summary.lower() or "дет" in summary.lower():
-                        critique = "\n\n🚨 **[КРИТИК | Асклепий]:** Обратите внимание на разделы 'Беременность' и 'Дети'. Требуется особая осторожность!"
+                        critique = "\n\n🚨 **[КРИТИК | Асклепий]:** Обратите внимание на разделы 'Беременность' и 'Дети'."
                     return f"🔍🧠 **[SEARCH + SIBTHINK]:**\n{summary}{critique}\n\n[AGENT_ID:Асклепий]"
                 else:
                     return f"🔍 **[SEARCH]:**\nСогласно статье «{title}»:\n\n{full_text[:1000]}...\n\n[AGENT_ID:Цербер]"
             return "🌐 **[SEARCH]:** Не найдено.\n\n[AGENT_ID:Цербер]"
 
+        # 4. Генерация (Chat / SibThink)
         length_type = "Средний"
         if any(w in text_low for w in ["коротко", "кратко"]): length_type = "Короткий"
         elif any(w in text_low for w in ["подробно", "длинно"]): length_type = "Длинный"
@@ -126,7 +176,7 @@ class LibraryAI:
 
 class ProAI:
     def ask(self, text):
-        return f"💬 [PRO] Запрос сложен. Загрузите файл или включите 'Search+Think'.\n\n[AGENT_ID:Цербер]"
+        return f"💬 [PRO] Запрос сложен. Загрузите файл или включите 'Search'.\n\n[AGENT_ID:Цербер]"
 
 class MasterAI:
     def __init__(self):

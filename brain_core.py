@@ -20,9 +20,7 @@ class BaseAI:
         if any(w in text_low for w in treatment_request):
             return "🛑 **[ЗАПРЕТ НАЗНАЧЕНИЯ]:** Я искусственный интеллект (справочник). Я НЕ МОГУ назначать лечение. Обратитесь к врачу.\n\n[AGENT_ID:Асклепий]"
 
-        # ЖЕЛЕЗНЫЙ ЗАНАВЕС (Исправленный)
         danger_symptoms = ["болит", "симптом", "что выпить", "что делать", "температура", "тошнит", "сыпь", "кашель", "насморк", "давление", "понос", "рвота"]
-        # Исключения: разрешаем поиск по базе
         search_exceptions = ["что есть от", "какие препараты от", "что помогает от", "что можно от"]
         
         if any(w in text_low for w in danger_symptoms):
@@ -38,7 +36,6 @@ class BaseAI:
         return None 
 
 def search_medicine_registry(query):
-    """Ищет лекарство в Реестре по названию"""
     query = query.lower().strip()
     for med_name, med_info in brain_models.MEDICINES_REGISTRY.items():
         if med_name in query:
@@ -54,13 +51,17 @@ def search_medicine_registry(query):
     return None
 
 def search_by_symptoms(query):
-    """Ищет лекарства по симптомам (например, 'от насморка')"""
-    keywords = [w for w in query.lower().split() if len(w) > 3 and w not in ["что", "есть", "какие", "препараты", "помогает", "можно", "от"]]
+    # Берем корни слов (первые 5 букв), чтобы игнорировать падежи
+    words = query.lower().replace("?", "").split()
+    stop_words = ["что", "есть", "какие", "препараты", "помогает", "можно", "от", "для"]
+    keywords = [w[:5] for w in words if len(w) > 3 and w not in stop_words]
+    
     if not keywords: return None
     
     found_meds = []
     for med_name, med_info in brain_models.MEDICINES_REGISTRY.items():
         indications_lower = med_info["indications"].lower()
+        # Проверяем, есть ли корень слова из запроса в показаниях
         if any(kw in indications_lower for kw in keywords):
             status = "🔴 Рец." if med_info["is_prescription"] else "🟢 Безрец."
             found_meds.append(f"- **{med_info['name']}** ({status}) — {med_info['indications']}")
@@ -134,8 +135,8 @@ class LibraryAI:
                 return f"🔍🧠 **[РЕЕСТР]:**\n{registry_result}{warning}\n\n[AGENT_ID:Цербер]"
             return f"🔍🧠 **[РЕЕСТР]:**\n{registry_result}\n\n[AGENT_ID:Цербер]"
             
-        # 2. Ищем по симптомам
-        if any(w in text_low for w in ["что есть от", "какие препараты от", "что помогает от"]):
+        # 2. Ищем по симптомам (с корнями слов)
+        if any(w in text_low for w in ["что есть от", "какие препараты от", "что помогает от", "что можно от"]):
             symptoms_result = search_by_symptoms(text_low)
             if symptoms_result:
                 return f"🔍🧠 **[СПРАВОЧНИК СИМПТОМОВ]:**\n{symptoms_result}\n\n[AGENT_ID:Асклепий]"

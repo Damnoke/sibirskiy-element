@@ -18,16 +18,20 @@ class BaseAI:
 
         treatment_request = ["пропиши", "назначь", "вылечи", "чем лечить", "что принимать", "какую дозу", "сколько пить", "курс лечения", "дай рецепт"]
         if any(w in text_low for w in treatment_request):
-            return "🛑 **[ЗАПРЕТ НАЗНАЧЕНИЯ]:** Я искусственный интеллект. Я НЕ МОГУ назначать лечение или выписывать рецепты. Обратитесь к врачу. Я могу лишь найти инструкцию к препарату.\n\n[AGENT_ID:Асклепий]"
+            return "🛑 **[ЗАПРЕТ НАЗНАЧЕНИЯ]:** Я искусственный интеллект (справочник). Я НЕ МОГУ назначать лечение. Обратитесь к врачу.\n\n[AGENT_ID:Асклепий]"
 
+        # ЖЕЛЕЗНЫЙ ЗАНАВЕС (Исправленный)
         danger_symptoms = ["болит", "симптом", "что выпить", "что делать", "температура", "тошнит", "сыпь", "кашель", "насморк", "давление", "понос", "рвота"]
+        # Исключения: разрешаем поиск по базе
+        search_exceptions = ["что есть от", "какие препараты от", "что помогает от", "что можно от"]
+        
         if any(w in text_low for w in danger_symptoms):
-            if not any(w in text_low for w in ["что есть от", "какие препараты от", "что помогает от"]):
-                return "🚨 **[ФАРМАЦЕВТИЧЕСКИЙ ЩИТ]:** Я не ставлю диагнозы по симптомам. Пожалуйста, опишите проблему фармацевту или врачу.\n\n[AGENT_ID:Асклепий]"
+            if not any(exc in text_low for exc in search_exceptions):
+                return "🚨 **[ФАРМАЦЕВТИЧЕСКИЙ ЩИТ]:** Я не ставлю диагнозы. Пожалуйста, опишите проблему фармацевту или врачу.\n\n[AGENT_ID:Асклепий]"
 
         restricted_drugs = ["трамадол", "прегабалин", "антибиотик", "наркотик", "сильнодействующ", "психотропн"]
         if any(w in text_low for w in restricted_drugs):
-            return "⚖️ **[ЮРИДИЧЕСКИЙ ЩИТ]:** Препараты этой группы отпускаются строго по рецепту врача (форма 107-1/у). Предоставьте рецепт фармацевту.\n\n[AGENT_ID:Цербер]"
+            return "⚖️ **[ЮРИДИЧЕСКИЙ ЩИТ]:** Препараты этой группы отпускаются строго по рецепту врача (форма 107-1/у).\n\n[AGENT_ID:Цербер]"
             
         if any(w in text_low for w in ["что такое", "значение"]): return dict_dept(text)
         elif any(w in text_low for w in ["марж", "выручк"]): return finance_dept(text)
@@ -51,7 +55,7 @@ def search_medicine_registry(query):
 
 def search_by_symptoms(query):
     """Ищет лекарства по симптомам (например, 'от насморка')"""
-    keywords = [w for w in query.lower().split() if len(w) > 3 and w not in ["что", "есть", "какие", "препараты", "помогает", "можно"]]
+    keywords = [w for w in query.lower().split() if len(w) > 3 and w not in ["что", "есть", "какие", "препараты", "помогает", "можно", "от"]]
     if not keywords: return None
     
     found_meds = []
@@ -122,7 +126,7 @@ class LibraryAI:
     def ask(self, text, mode="normal"):
         text_low = text.lower()
         
-        # 1. Поиск по названию лекарства (База данных)
+        # 1. Ищем по названию лекарства
         registry_result = search_medicine_registry(text_low)
         if registry_result:
             if "Рецептурный" in registry_result:
@@ -130,13 +134,15 @@ class LibraryAI:
                 return f"🔍🧠 **[РЕЕСТР]:**\n{registry_result}{warning}\n\n[AGENT_ID:Цербер]"
             return f"🔍🧠 **[РЕЕСТР]:**\n{registry_result}\n\n[AGENT_ID:Цербер]"
             
-        # 2. Поиск по симптомам (База данных)
-        if any(w in text_low for w in ["от насморка", "от простуды", "от орви", "от головы", "от температуры", "от боли", "что есть от"]):
+        # 2. Ищем по симптомам
+        if any(w in text_low for w in ["что есть от", "какие препараты от", "что помогает от"]):
             symptoms_result = search_by_symptoms(text_low)
             if symptoms_result:
                 return f"🔍🧠 **[СПРАВОЧНИК СИМПТОМОВ]:**\n{symptoms_result}\n\n[AGENT_ID:Асклепий]"
+            else:
+                return "🌐 **[СПРАВОЧНИК]:** В нашей базе пока нет препаратов с такими показаниями.\n\n[AGENT_ID:Асклепий]"
         
-        # 3. Поиск в Википедии (если нет в базе)
+        # 3. Поиск в Википедии
         if mode in ["search", "search_think"]:
             title, full_text = web_search(text)
             if full_text:
@@ -150,7 +156,7 @@ class LibraryAI:
                     return f"🔍 **[SEARCH]:**\nСогласно статье «{title}»:\n\n{full_text[:1000]}...\n\n[AGENT_ID:Цербер]"
             return "🌐 **[SEARCH]:** Не найдено.\n\n[AGENT_ID:Цербер]"
 
-        # 4. Генерация (Chat / SibThink)
+        # 4. Генерация из базы знаний
         length_type = "Средний"
         if any(w in text_low for w in ["коротко", "кратко"]): length_type = "Короткий"
         elif any(w in text_low for w in ["подробно", "длинно"]): length_type = "Длинный"

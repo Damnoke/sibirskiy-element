@@ -5,32 +5,37 @@ import sqlite3
 import time
 from brain_core import MasterAI
 
-# --- НАСТРОЙКА СТРАНИЦЫ И ДИЗАЙН (CSS) ---
+# --- НАСТРОЙКА СТРАНИЦЫ И ДИЗАЙН (ИСПРАВЛЕННЫЙ) ---
 st.set_page_config(page_title="Сибирский Элемент - Аптека", page_icon="💊", layout="wide")
 
 st.markdown("""
 <style>
-    /* Главный фон */
-    .stApp { background-color: #f4f7f6; }
+    /* Делаем фон мягким, но оставляем текст темным */
+    .stApp { background-color: #f8f9fa; }
     
-    /* Заголовки */
-    h1, h2, h3 { color: #0056b3 !important; font-family: 'Segoe UI', sans-serif; }
+    /* Все заголовки и текст делаем контрастными */
+    h1, h2, h3 { color: #0d6efd !important; }
+    p, span, div, label { color: #212529 !important; }
     
     /* Кнопки */
     .stButton>button {
-        background-color: #007bff; color: white; border-radius: 10px;
-        font-size: 16px; font-weight: bold; padding: 10px 20px;
+        background-color: #0d6efd; color: white !important; border-radius: 8px;
+        font-weight: bold;
     }
-    .stButton>button:hover { background-color: #0056b3; }
     
-    /* Поле ввода */
-    .stTextInput>div>div>input {
-        border-radius: 10px; border: 2px solid #007bff;
-        font-size: 18px; padding: 10px;
+    /* Поле ввода делаем заметным */
+    .stChatInput textarea {
+        background-color: #ffffff !important;
+        color: #212529 !important;
+        border: 1px solid #0d6efd !important;
     }
     
     /* Блоки ответов ИИ */
-    .stChatMessage { border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .stChatMessage { 
+        background-color: #ffffff; 
+        border-radius: 10px; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -41,14 +46,13 @@ if "ai_brain" not in st.session_state or st.session_state.get("version") != "4.6
 if "messages" not in st.session_state: st.session_state.messages = []
 if "learn_msg" not in st.session_state: st.session_state.learn_msg = None
 
-# --- БОКОВАЯ ПАНЕЛЬ (Скрываем лишнее) ---
+# --- БОКОВАЯ ПАНЕЛЬ ---
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/2966/2966486.png", width=60)
     st.title("Сибирский Элемент")
     st.caption("Интеллектуальный помощник провизора")
     
     st.divider()
-    # Оставляем блок обучения только для тебя (Архитектора)
     with st.expander("⚙️ Панель Архитектора (Обучение)"):
         agent_names = [a.name for a in brain_models.ALL_AGENTS]
         selected_agent = st.selectbox("Выберите отдел:", agent_names)
@@ -75,7 +79,6 @@ with st.sidebar:
                     st.session_state.learn_msg = agent.read_book(file_text)
                     st.rerun()
 
-    # Блоки Жалоб и Обучения
     with st.expander("🚨 Жалобы"):
         conn = sqlite3.connect("agents_database.db")
         c = conn.cursor()
@@ -100,9 +103,8 @@ with st.sidebar:
 
 # --- ОСНОВНОЙ ИНТЕРФЕЙС ---
 st.title("💊 Аптечный помощник")
-st.markdown("Введите название препарата, симптом или вопрос.")
+st.markdown("Введите название препарата, симптом или вопрос. Если я не знаю — я запишу это в блок обучения.")
 
-# Отображение истории
 for i, msg in enumerate(st.session_state.messages):
     with st.chat_message(msg["role"], avatar=msg.get("avatar")):
         content = msg["content"]
